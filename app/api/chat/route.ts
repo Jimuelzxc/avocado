@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { apiKey, baseUrl, model, messages } = await req.json();
+    const { apiKey, baseUrl, model, systemPrompt, messages } = await req.json();
 
     if (!baseUrl) {
       return NextResponse.json({ error: 'Base URL is required' }, { status: 400 });
@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
     }
+
+    const fullMessages = systemPrompt?.trim()
+      ? [{ role: 'system', content: systemPrompt }, ...messages]
+      : messages;
 
     // Format clean URL path (remove trailing slash)
     const sanitizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
@@ -29,7 +33,7 @@ export async function POST(req: NextRequest) {
       headers,
       body: JSON.stringify({
         model,
-        messages,
+        messages: fullMessages,
         stream: true,
       }),
     });

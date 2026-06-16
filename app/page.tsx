@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Copy, Send, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import { RotateCcw, Copy, Settings as SettingsIcon, Trash2 } from 'lucide-react';
 import { Braces, ArrowUp } from 'lucide-react'
-import { useChatStore, Message } from './store/chatStore';
+import { useChatStore, Message, Theme } from './store/chatStore';
 import { SettingsModal } from './components/SettingsModal';
 import { SystemPromptModal } from './components/SystemPromptModal';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
@@ -18,6 +18,8 @@ export default function Desktop_1() {
     model,
     systemPrompt,
     isStreaming,
+    theme,
+    setTheme,
     setSettingsOpen,
     createChat,
     deleteChat,
@@ -191,7 +193,7 @@ export default function Desktop_1() {
   // Hydration wrapper to avoid mismatch
   if (!mounted) {
     return (
-      <div className="flex h-screen w-full bg-[#000080] text-white justify-center items-center font-mono">
+      <div className="flex h-screen w-full bg-surface text-text-primary justify-center items-center font-mono">
         <p>LOADING blues. SYSTEM...</p>
       </div>
     );
@@ -199,17 +201,27 @@ export default function Desktop_1() {
 
   return (
     <div
-      className="flex h-screen w-full bg-[#000080] text-white overflow-hidden font-mono selection:bg-[#20ffe5]/30"
+      className="flex h-screen w-full bg-surface text-text-primary overflow-hidden font-mono selection:bg-[var(--selection)]"
       style={{ fontFamily: "'JetBrains Mono', monospace" }}
     >
       {/* Sidebar */}
-      <aside className="hidden md:flex w-72 flex-col border-r border-white h-full shrink-0">
+      <aside className="hidden md:flex w-72 flex-col border-r border-border h-full shrink-0">
         {/* Logo & Header */}
         <div className="p-5 flex justify-between items-center">
-          <h1 className="text-[#20ffe5] text-lg tracking-wide">blues.</h1>
+          <h1 className="text-accent text-lg tracking-wide">blues.</h1>
+          <select
+            value={theme}
+            onChange={(e) => setTheme(e.target.value as Theme)}
+            className="bg-transparent border border-border text-accent text-xs px-1 py-0.5 outline-none focus:ring-1 focus:ring-accent cursor-pointer font-mono"
+          >
+            <option value="default">Default</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="claude">Claude</option>
+          </select>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="p-1 hover:text-[#20ffe5] transition-colors cursor-pointer"
+            className="p-1 hover:text-accent transition-colors cursor-pointer"
             aria-label="Settings"
           >
             <SettingsIcon size={18} />
@@ -220,7 +232,7 @@ export default function Desktop_1() {
         <div className="px-5 pb-6 flex gap-2">
           <button
             onClick={() => createChat()}
-            className="flex-1 border border-white py-2 px-4 text-left text-base hover:bg-white/10 transition-colors focus:outline-none focus:ring-1 focus:ring-[#20ffe5] cursor-pointer"
+            className="flex-1 border border-border py-2 px-4 text-left text-base hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
           >
             New Chat
           </button>
@@ -231,7 +243,7 @@ export default function Desktop_1() {
           {chats.map((chat) => (
             <div
               key={chat.id}
-              className={`group flex items-center justify-between p-2 border ${chat.id === activeChatId ? 'border-[#20ffe5] text-[#20ffe5]' : 'border-transparent text-white hover:bg-white/5'
+              className={`group flex items-center justify-between p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'
                 }`}
             >
               <button
@@ -242,7 +254,7 @@ export default function Desktop_1() {
               </button>
               <button
                 onClick={() => deleteChat(chat.id)}
-                className="opacity-0 group-hover:opacity-100 hover:text-[#f6ff00] cursor-pointer p-1 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 hover:text-accent-secondary cursor-pointer p-1 transition-opacity"
                 aria-label="Delete Chat"
               >
                 <Trash2 size={14} />
@@ -253,20 +265,20 @@ export default function Desktop_1() {
       </aside>
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col h-full relative border-white md:border-t-0 border-t">
+      <main className="flex-1 flex flex-col h-full relative border-border md:border-t-0 border-t">
         {/* Mobile Header */}
-        <div className="md:hidden flex justify-between items-center p-4 border-b border-white">
-          <h1 className="text-[#20ffe5] text-base tracking-wide">blues.</h1>
+        <div className="md:hidden flex justify-between items-center p-4 border-b border-border">
+          <h1 className="text-accent text-base tracking-wide">blues.</h1>
           <div className="flex gap-3">
             <button
               onClick={() => createChat()}
-              className="text-sm border border-white px-2 py-1 hover:bg-white/10 cursor-pointer"
+              className="text-sm border border-border px-2 py-1 hover:bg-surface-overlay cursor-pointer"
             >
               New
             </button>
             <button
               onClick={() => setSettingsOpen(true)}
-              className="hover:text-[#20ffe5] cursor-pointer"
+              className="hover:text-accent cursor-pointer"
             >
               <SettingsIcon size={18} />
             </button>
@@ -277,15 +289,15 @@ export default function Desktop_1() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-5xl mx-auto w-full flex flex-col gap-8">
             {messages.length === 0 ? (
-              <div className="border border-white p-6 md:p-8 bg-[#000080] text-center my-8 flex flex-col gap-4">
-                <h2 className="text-xl md:text-2xl text-[#20ffe5] font-bold">blues. SYSTEM V1.0</h2>
-                <p className="text-sm md:text-base leading-relaxed text-white/80">
+              <div className="border border-border p-6 md:p-8 bg-surface text-center my-8 flex flex-col gap-4">
+                <h2 className="text-xl md:text-2xl text-accent font-bold">blues. SYSTEM V1.0</h2>
+                <p className="text-sm md:text-base leading-relaxed text-text-secondary">
                   Welcome to the blues AI retro terminal.
                   Please send a message to start conversing, or click the Settings gear icon to select a model/configure keys.
                 </p>
-                <div className="text-xs md:text-sm text-left bg-black/30 p-4 border border-white/20 text-[#f6ff00]">
-                  Current Provider: <span className="text-white">{baseUrl}</span><br />
-                  Active Model: <span className="text-white">{model}</span>
+                <div className="text-xs md:text-sm text-left bg-surface-overlay p-4 border border-border/20 text-accent-secondary">
+                  Current Provider: <span className="text-text-primary">{baseUrl}</span><br />
+                  Active Model: <span className="text-text-primary">{model}</span>
                 </div>
               </div>
             ) : (
@@ -293,7 +305,7 @@ export default function Desktop_1() {
                 <div
                   key={idx}
                   className={`${msg.role === 'user'
-                    ? 'self-end border border-white p-4 max-w-[90%] md:max-w-[70%] bg-[#000080]'
+                    ? 'self-end border border-border p-4 max-w-[90%] md:max-w-[70%] bg-surface'
                     : 'self-start max-w-[95%] md:max-w-[85%] flex flex-col gap-4'
                     }`}
                 >
@@ -309,18 +321,18 @@ export default function Desktop_1() {
                   )}
 
                   {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-3 pt-2 text-white/70">
+                    <div className="flex items-center gap-3 pt-2 text-text-secondary">
                       <button
                         onClick={() => handleRegenerate(idx)}
                         disabled={isStreaming}
-                        className="hover:text-[#20ffe5] disabled:opacity-50 transition-colors p-1 cursor-pointer"
+                        className="hover:text-accent disabled:opacity-50 transition-colors p-1 cursor-pointer"
                         aria-label="Regenerate response"
                       >
                         <RotateCcw size={18} strokeWidth={1.5} />
                       </button>
                       <button
                         onClick={() => handleCopy(msg.content)}
-                        className="hover:text-[#20ffe5] transition-colors p-1 cursor-pointer"
+                        className="hover:text-accent transition-colors p-1 cursor-pointer"
                         aria-label="Copy to clipboard"
                       >
                         <Copy size={18} strokeWidth={1.5} />
@@ -338,11 +350,11 @@ export default function Desktop_1() {
         <div className="p-4 md:p-8 shrink-0 w-full">
           <div className="max-w-5xl mx-auto w-full">
             <form
-              className="border border-white p-4 flex flex-col gap-4 relative min-h-[120px] bg-[#000080] group focus-within:ring-1 focus-within:ring-[#20ffe5] transition-all"
+              className="border border-border p-4 flex flex-col gap-4 relative min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
               onSubmit={handleSendMessage}
             >
               <textarea
-                className="w-full bg-transparent border-none outline-none resize-none text-lg placeholder:text-white/60 min-h-[60px] font-mono"
+                className="w-full bg-transparent border-none outline-none resize-none text-lg placeholder:text-text-secondary min-h-[60px] font-mono"
                 placeholder="Ask a question..."
                 rows={2}
                 value={inputValue}
@@ -356,8 +368,8 @@ export default function Desktop_1() {
                 }}
               />
               <div className=" flex justify-between items-center w-full">
-                <div className="text-white">
-                  <button id="system-prompt" onClick={() => setIsSystemPromptOpen(true)}>
+                <div className="text-text-primary">
+                  <button id="system-prompt" type="button" onClick={() => setIsSystemPromptOpen(true)}>
                     <Braces size={22} strokeWidth={1.5} />
                   </button>
 
@@ -366,7 +378,7 @@ export default function Desktop_1() {
                   <button
                     type="submit"
                     disabled={isStreaming || !inputValue.trim()}
-                    className="p-2 hover:bg-white/10 rounded-sm transition-colors text-white hover:text-[#20ffe5] disabled:opacity-50 disabled:hover:text-white cursor-pointer"
+                    className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-text-primary hover:text-accent disabled:opacity-50 disabled:hover:text-text-primary cursor-pointer"
                     aria-label="Send message"
                   >
                     <ArrowUp size={22} strokeWidth={1.5} />

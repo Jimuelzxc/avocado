@@ -45,12 +45,12 @@ export function SettingsModal() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
       {/* Retro style modal container */}
-      <div className="w-full max-w-md border-2 border-white bg-[#000080] p-6 text-white font-mono shadow-2xl relative">
-        <div className="flex justify-between items-center border-b border-white pb-3 mb-4">
-          <h2 className="text-[#20ffe5] text-lg font-bold">SYSTEM CONFIG</h2>
+      <div className="w-full max-w-md border-2 border-border bg-surface p-6 text-text-primary font-mono shadow-2xl relative">
+        <div className="flex justify-between items-center border-b border-border pb-3 mb-4">
+          <h2 className="text-accent text-lg font-bold">SYSTEM CONFIG</h2>
           <button 
             onClick={() => setSettingsOpen(false)}
-            className="text-white hover:text-[#f6ff00] cursor-pointer"
+            className="text-text-primary hover:text-accent-secondary cursor-pointer"
           >
             [X]
           </button>
@@ -59,11 +59,11 @@ export function SettingsModal() {
         <div className="flex flex-col gap-4 text-sm">
           {/* Preset Selector */}
           <div className="flex flex-col gap-1">
-            <label className="text-white/80">API PRESET:</label>
+            <label className="text-text-secondary">API PRESET:</label>
             <select
               value={preset}
               onChange={(e) => handlePresetChange(e.target.value)}
-              className="w-full bg-[#000080] border border-white text-white p-2 outline-none focus:border-[#20ffe5]"
+              className="w-full bg-surface border border-border text-text-primary p-2 outline-none focus:border-accent"
             >
               <option value="openrouter">OpenRouter (Cloud)</option>
               <option value="ollama">Ollama (Localhost)</option>
@@ -73,24 +73,24 @@ export function SettingsModal() {
 
           {/* Base URL */}
           <div className="flex flex-col gap-1">
-            <label className="text-white/80">BASE URL:</label>
+            <label className="text-text-secondary">BASE URL:</label>
             <input
               type="text"
               value={localBaseUrl}
               onChange={(e) => setLocalBaseUrl(e.target.value)}
               disabled={preset !== 'custom'}
-              className="w-full bg-[#000080] border border-white text-white p-2 outline-none focus:border-[#20ffe5] disabled:opacity-60"
+              className="w-full bg-surface border border-border text-text-primary p-2 outline-none focus:border-accent disabled:opacity-60"
             />
           </div>
 
           {/* API Key */}
           <div className="flex flex-col gap-1">
-            <label className="text-white/80 flex justify-between">
+            <label className="text-text-secondary flex justify-between">
               <span>API KEY:</span>
               <button 
                 type="button" 
                 onClick={() => setShowKey(!showKey)} 
-                className="text-[#20ffe5] hover:underline cursor-pointer"
+                className="text-accent hover:underline cursor-pointer"
               >
                 {showKey ? 'Hide' : 'Show'}
               </button>
@@ -101,33 +101,33 @@ export function SettingsModal() {
               onChange={(e) => setLocalApiKey(e.target.value)}
               placeholder={preset === 'ollama' ? 'None required' : 'Enter API Key'}
               disabled={preset === 'ollama'}
-              className="w-full bg-[#000080] border border-white text-white p-2 outline-none focus:border-[#20ffe5] disabled:opacity-60"
+              className="w-full bg-surface border border-border text-text-primary p-2 outline-none focus:border-accent disabled:opacity-60"
             />
           </div>
 
           {/* Model Name */}
           <div className="flex flex-col gap-1">
-            <label className="text-white/80">MODEL NAME:</label>
+            <label className="text-text-secondary">MODEL NAME:</label>
             <input
               type="text"
               value={localModel}
               onChange={(e) => setLocalModel(e.target.value)}
-              className="w-full bg-[#000080] border border-white text-white p-2 outline-none focus:border-[#20ffe5]"
+              className="w-full bg-surface border border-border text-text-primary p-2 outline-none focus:border-accent"
             />
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-4 justify-end mt-6 pt-4 border-t border-white/20">
+        <div className="flex gap-4 justify-end mt-6 pt-4 border-t border-border/20">
           <button
             onClick={() => setSettingsOpen(false)}
-            className="border border-white hover:bg-white/10 px-4 py-2 cursor-pointer transition-colors"
+            className="border border-border hover:bg-surface-overlay px-4 py-2 cursor-pointer transition-colors"
           >
             CANCEL
           </button>
           <button
             onClick={handleSave}
-            className="border border-[#20ffe5] text-[#20ffe5] hover:bg-[#20ffe5]/10 px-4 py-2 cursor-pointer transition-colors font-bold"
+            className="border border-accent text-accent hover:bg-accent/10 px-4 py-2 cursor-pointer transition-colors font-bold"
           >
             SAVE SETTINGS
           </button>

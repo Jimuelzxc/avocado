@@ -40,7 +40,7 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       apiKey: '',
       baseUrl: 'https://openrouter.ai/api/v1',
       model: 'meta-llama/llama-3.2-3b-instruct',

@@ -4,6 +4,8 @@ import { RotateCcw, Copy, Send, Settings as SettingsIcon, Trash2 } from 'lucide-
 import { useChatStore, Message } from './store/chatStore';
 import { SettingsModal } from './components/SettingsModal';
 
+const EMPTY_MESSAGES: Message[] = [];
+
 export default function Desktop_1() {
   const {
     chats,
@@ -18,7 +20,7 @@ export default function Desktop_1() {
     addMessage,
     updateLastMessage,
     replaceLastMessage,
-    clearLastMessage,
+    isSettingsOpen,
   } = useChatStore();
 
   const [inputValue, setInputValue] = useState('');
@@ -27,12 +29,15 @@ export default function Desktop_1() {
 
   // Prevent hydration errors by waiting for client-side mount
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Get active chat messages
   const activeChat = chats.find((c) => c.id === activeChatId);
-  const messages = activeChat ? activeChat.messages : [];
+  const messages = activeChat ? activeChat.messages : EMPTY_MESSAGES;
 
   // Scroll to bottom on messages update
   const scrollToBottom = () => {
@@ -52,7 +57,7 @@ export default function Desktop_1() {
     }
   }, [mounted, chats.length, createChat]);
 
-  const handleSendMessage = async (e: React.FormEvent, customContent?: string) => {
+  const handleSendMessage = async (e?: React.FormEvent | { preventDefault: () => void }, customContent?: string) => {
     e?.preventDefault();
     const text = customContent ?? inputValue;
     if (!text.trim() || isStreaming) return;
@@ -132,15 +137,16 @@ export default function Desktop_1() {
               if (chunk) {
                 updateLastMessage(targetChatId, chunk);
               }
-            } catch (err) {
+            } catch {
               // Ignore incomplete line parse failures
             }
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Streaming error:', error);
-      replaceLastMessage(targetChatId, `Error: ${error?.message || 'A network error occurred.'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      replaceLastMessage(targetChatId, `Error: ${errorMessage}`);
     } finally {
       useChatStore.setState({ isStreaming: false });
     }
@@ -173,7 +179,7 @@ export default function Desktop_1() {
     useChatStore.setState({ chats: updatedChats });
 
     // Trigger message flow with the prevMessage content
-    await handleSendMessage({ preventDefault: () => {} } as any, prevMessage.content);
+    await handleSendMessage({ preventDefault: () => {} }, prevMessage.content);
   };
 
   // Hydration wrapper to avoid mismatch
@@ -356,7 +362,7 @@ export default function Desktop_1() {
       </main>
       
       {/* Settings Modal */}
-      <SettingsModal />
+      {isSettingsOpen && <SettingsModal />}
     </div>
   );
 }

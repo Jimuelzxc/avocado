@@ -55,10 +55,11 @@ export async function POST(req: NextRequest) {
         'Connection': 'keep-alive',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: `Internal server error: ${error?.message || String(error)}` },
+      { error: `Internal server error: ${errorMessage}` },
       { status: 500 }
     );
   }

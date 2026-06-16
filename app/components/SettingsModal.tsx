@@ -1,33 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useChatStore } from '../store/chatStore';
 
 export function SettingsModal() {
-  const { apiKey, baseUrl, model, setSettings, isSettingsOpen, setSettingsOpen } = useChatStore();
+  const { apiKey, baseUrl, model, setSettings, setSettingsOpen } = useChatStore();
 
-  const [preset, setPreset] = useState('openrouter');
-  const [localApiKey, setLocalApiKey] = useState('');
-  const [localBaseUrl, setLocalBaseUrl] = useState('');
-  const [localModel, setLocalModel] = useState('');
-  const [showKey, setShowKey] = useState(false);
-
-  // Sync store settings with local component state when modal opens
-  useEffect(() => {
-    if (isSettingsOpen) {
-      setLocalApiKey(apiKey);
-      setLocalBaseUrl(baseUrl);
-      setLocalModel(model);
-      
-      if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-        setPreset('ollama');
-      } else if (baseUrl.includes('openrouter.ai')) {
-        setPreset('openrouter');
-      } else {
-        setPreset('custom');
-      }
+  const [preset, setPreset] = useState(() => {
+    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      return 'ollama';
+    } else if (baseUrl.includes('openrouter.ai')) {
+      return 'openrouter';
+    } else {
+      return 'custom';
     }
-  }, [isSettingsOpen, apiKey, baseUrl, model]);
+  });
+  const [localApiKey, setLocalApiKey] = useState(apiKey);
+  const [localBaseUrl, setLocalBaseUrl] = useState(baseUrl);
+  const [localModel, setLocalModel] = useState(model);
+  const [showKey, setShowKey] = useState(false);
 
   // Handle preset selection
   const handlePresetChange = (selected: string) => {
@@ -50,8 +41,6 @@ export function SettingsModal() {
     });
     setSettingsOpen(false);
   };
-
-  if (!isSettingsOpen) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">

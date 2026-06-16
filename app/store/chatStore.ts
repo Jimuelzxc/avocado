@@ -16,12 +16,14 @@ export interface Settings {
   apiKey: string;
   baseUrl: string;
   model: string;
+  systemPrompt: string;
 }
 
 interface ChatState {
   apiKey: string;
   baseUrl: string;
   model: string;
+  systemPrompt: string;
   chats: Chat[];
   activeChatId: string | null;
   isStreaming: boolean;
@@ -44,6 +46,7 @@ export const useChatStore = create<ChatState>()(
       apiKey: '',
       baseUrl: 'https://openrouter.ai/api/v1',
       model: 'meta-llama/llama-3.2-3b-instruct',
+      systemPrompt: '',
       chats: [],
       activeChatId: null,
       isStreaming: false,
@@ -148,6 +151,7 @@ export const useChatStore = create<ChatState>()(
         apiKey: state.apiKey,
         baseUrl: state.baseUrl,
         model: state.model,
+        systemPrompt: state.systemPrompt,
         chats: state.chats,
         activeChatId: state.activeChatId,
       }),

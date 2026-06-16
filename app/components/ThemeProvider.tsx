@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useChatStore, Theme } from '../store/chatStore';
+import { useChatStore } from '../store/chatStore';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useChatStore((s) => s.theme);

@@ -19,6 +19,8 @@ export interface Settings {
   systemPrompt: string;
 }
 
+export type Theme = 'default' | 'dark' | 'light' | 'claude';
+
 interface ChatState {
   apiKey: string;
   baseUrl: string;
@@ -28,7 +30,7 @@ interface ChatState {
   activeChatId: string | null;
   isStreaming: boolean;
   isSettingsOpen: boolean;
-  theme: string;
+  theme: Theme;
   
   // Actions
   setSettings: (settings: Partial<Settings>) => void;
@@ -39,7 +41,7 @@ interface ChatState {
   updateLastMessage: (chatId: string, chunk: string) => void;
   replaceLastMessage: (chatId: string, content: string) => void;
   clearLastMessage: (chatId: string) => void;
-  setTheme: (theme: string) => void;
+  setTheme: (theme: Theme) => void;
 }
 
 export const useChatStore = create<ChatState>()(

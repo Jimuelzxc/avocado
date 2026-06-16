@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useChatStore } from '../store/chatStore';
 
 export function SettingsModal() {
-  const { apiKey, baseUrl, model, setSettings, setSettingsOpen } = useChatStore();
+  const { apiKey, baseUrl, model, systemPrompt, setSettings, setSettingsOpen } = useChatStore();
 
   const [preset, setPreset] = useState(() => {
     if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
@@ -18,6 +18,7 @@ export function SettingsModal() {
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localBaseUrl, setLocalBaseUrl] = useState(baseUrl);
   const [localModel, setLocalModel] = useState(model);
+  const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
   const [showKey, setShowKey] = useState(false);
 
   // Handle preset selection
@@ -38,6 +39,7 @@ export function SettingsModal() {
       apiKey: localApiKey,
       baseUrl: localBaseUrl,
       model: localModel,
+      systemPrompt: localSystemPrompt,
     });
     setSettingsOpen(false);
   };
@@ -113,6 +115,18 @@ export function SettingsModal() {
               value={localModel}
               onChange={(e) => setLocalModel(e.target.value)}
               className="w-full bg-[#000080] border border-white text-white p-2 outline-none focus:border-[#20ffe5]"
+            />
+          </div>
+
+          {/* System Prompt */}
+          <div className="flex flex-col gap-1">
+            <label className="text-white/80">SYSTEM PROMPT:</label>
+            <textarea
+              value={localSystemPrompt}
+              onChange={(e) => setLocalSystemPrompt(e.target.value)}
+              rows={4}
+              placeholder="Optional: Set a system prompt to define AI behavior..."
+              className="w-full bg-[#000080] border border-white text-white p-2 outline-none focus:border-[#20ffe5] font-mono text-sm resize-y"
             />
           </div>
         </div>

@@ -213,6 +213,7 @@ export default function Desktop_1() {
             value={theme}
             onChange={(e) => setTheme(e.target.value as Theme)}
             className="bg-transparent border border-border text-accent text-xs px-1 py-0.5 outline-none focus:ring-1 focus:ring-accent cursor-pointer font-mono"
+            aria-label="Theme"
           >
             <option value="default">Default</option>
             <option value="dark">Dark</option>

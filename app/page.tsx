@@ -14,6 +14,7 @@ export default function Desktop_1() {
     apiKey,
     baseUrl,
     model,
+    systemPrompt,
     isStreaming,
     setSettingsOpen,
     createChat,
@@ -96,6 +97,7 @@ export default function Desktop_1() {
           apiKey,
           baseUrl,
           model,
+          systemPrompt,
           messages: [...chatMessages, userMsg],
         }),
       });

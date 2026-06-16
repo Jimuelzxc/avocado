@@ -17,10 +17,10 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4 mx-2">
       <div className="w-full max-w-2xl border-2 border-border bg-surface p-6 text-text-primary font-mono shadow-2xl relative">
         <div className="flex justify-between items-center border-b border-border pb-3 mb-4">
-          <h2 className="text-accent text-lg font-bold">SYSTEM PROMPT</h2>
+          <h2 className="text-accent text-base font-bold">SYSTEM PROMPT</h2>
           <button
             onClick={onClose}
             className="text-text-primary hover:text-accent-secondary cursor-pointer"
@@ -30,9 +30,7 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
         </div>
 
         <div className="flex flex-col gap-1 mb-6">
-          <label className="text-text-secondary text-sm mb-1">
-            Define how the AI behaves across all conversations:
-          </label>
+
           <textarea
             value={localPrompt}
             onChange={(e) => setLocalPrompt(e.target.value)}

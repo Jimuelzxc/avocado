@@ -20,6 +20,8 @@ export interface Settings {
 }
 
 export type Theme = 'default' | 'dark' | 'light' | 'claude';
+export type FontSize = 'small' | 'medium' | 'large';
+export type FontFamily = 'mono' | 'sans';
 
 interface ChatState {
   apiKey: string;
@@ -31,6 +33,8 @@ interface ChatState {
   isStreaming: boolean;
   isSettingsOpen: boolean;
   theme: Theme;
+  fontSize: FontSize;
+  fontFamily: FontFamily;
   
   // Actions
   setSettings: (settings: Partial<Settings>) => void;
@@ -42,6 +46,8 @@ interface ChatState {
   replaceLastMessage: (chatId: string, content: string) => void;
   clearLastMessage: (chatId: string) => void;
   setTheme: (theme: Theme) => void;
+  setFontSize: (fontSize: FontSize) => void;
+  setFontFamily: (fontFamily: FontFamily) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -56,6 +62,8 @@ export const useChatStore = create<ChatState>()(
       isStreaming: false,
       isSettingsOpen: false,
       theme: 'default',
+      fontSize: 'medium',
+      fontFamily: 'mono',
 
       setSettings: (settings) => set((state) => ({ ...state, ...settings })),
       setSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
@@ -90,7 +98,6 @@ export const useChatStore = create<ChatState>()(
         const updatedChats = state.chats.map((chat) => {
           if (chat.id === chatId) {
             const updatedMessages = [...chat.messages, message];
-            // Update title based on the first message
             let newTitle = chat.title;
             if (chat.messages.length === 0 && message.role === 'user') {
               newTitle = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
@@ -150,6 +157,8 @@ export const useChatStore = create<ChatState>()(
         return { chats: updatedChats };
       }),
       setTheme: (theme) => set({ theme }),
+      setFontSize: (fontSize) => set({ fontSize }),
+      setFontFamily: (fontFamily) => set({ fontFamily }),
     }),
     {
       name: 'blues-chat-storage',
@@ -161,6 +170,8 @@ export const useChatStore = create<ChatState>()(
         chats: state.chats,
         activeChatId: state.activeChatId,
         theme: state.theme,
+        fontSize: state.fontSize,
+        fontFamily: state.fontFamily,
       }),
     }
   )

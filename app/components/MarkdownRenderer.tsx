@@ -26,7 +26,7 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
             if (isInline) {
               return (
                 <code
-                  className="bg-surface-overlay border border-border/20 text-accent px-1.5 py-0.5 rounded-sm text-sm font-mono"
+                  className="bg-surface-overlay border border-border/20 text-accent px-1.5 py-0.5 rounded-sm text-sm font-mono break-all"
                   {...props}
                 >
                   {children}
@@ -93,8 +93,8 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
               {children}
             </a>
           ),
-          h1: ({ children }) => <h1 className="text-xl font-bold my-4 text-accent">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-bold my-3 text-accent">{children}</h2>,
+          h1: ({ children }) => <h1 className="text-lg font-bold my-4 text-accent">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-base font-bold my-3 text-accent">{children}</h2>,
           h3: ({ children }) => <h3 className="text-base font-bold my-2 text-accent">{children}</h3>,
         }}
       >
@@ -119,7 +119,7 @@ function CodeBlock({ language, code }: CodeBlockProps) {
   };
 
   return (
-    <div className="border border-border my-4 flex flex-col bg-surface">
+    <div className="border border-border my-4 flex flex-col bg-surface max-w-full overflow-x-auto">
       {/* Retro DOS Window header */}
       <div className="flex justify-between items-center bg-surface border-b border-border px-3 py-1.5 text-xs text-white font-mono uppercase select-none">
         <span className="text-accent font-bold">[{language}]</span>

@@ -390,13 +390,22 @@ export default function Desktop_1() {
           <aside className="fixed left-0 top-0 h-full w-72 bg-surface border-r border-border flex flex-col z-50 animate-slide-in">
             <div className="p-5 flex justify-between items-center">
               <h1 className="text-accent text-base tracking-wide">blues.</h1>
-              <button
-                onClick={() => setIsMobileSidebarOpen(false)}
-                className="p-1 hover:text-accent transition-colors cursor-pointer"
-                aria-label="Close sidebar"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => { setSettingsOpen(true); setIsMobileSidebarOpen(false); }}
+                  className="p-1 hover:text-accent transition-colors cursor-pointer"
+                  aria-label="Settings"
+                >
+                  <SettingsIcon size={18} />
+                </button>
+                <button
+                  onClick={() => setIsMobileSidebarOpen(false)}
+                  className="p-1 hover:text-accent transition-colors cursor-pointer"
+                  aria-label="Close sidebar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             <div className="px-5 pb-6 flex gap-2">
               <button

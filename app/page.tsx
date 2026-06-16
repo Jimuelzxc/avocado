@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, Copy, Send, Settings as SettingsIcon, Trash2 } from 'lucide-react';
 import { useChatStore, Message } from './store/chatStore';
 import { SettingsModal } from './components/SettingsModal';
+import { MarkdownRenderer } from './components/MarkdownRenderer';
 
 const EMPTY_MESSAGES: Message[] = [];
 
@@ -130,7 +131,7 @@ export default function Desktop_1() {
           if (cleaned.startsWith('data: ')) {
             const dataStr = cleaned.slice(6);
             if (dataStr === '[DONE]') continue;
-            
+
             try {
               const parsed = JSON.parse(dataStr);
               const chunk = parsed.choices?.[0]?.delta?.content || '';
@@ -168,7 +169,7 @@ export default function Desktop_1() {
     // Remove last AI response and rewrite
     // Truncate message array to just before the assistant message
     const updatedMessages = activeChatNow.messages.slice(0, idx);
-    
+
     // Update store chats state
     const updatedChats = chats.map((c) => {
       if (c.id === activeChatId) {
@@ -179,7 +180,7 @@ export default function Desktop_1() {
     useChatStore.setState({ chats: updatedChats });
 
     // Trigger message flow with the prevMessage content
-    await handleSendMessage({ preventDefault: () => {} }, prevMessage.content);
+    await handleSendMessage({ preventDefault: () => { } }, prevMessage.content);
   };
 
   // Hydration wrapper to avoid mismatch
@@ -223,11 +224,10 @@ export default function Desktop_1() {
         {/* Chat History List */}
         <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-2">
           {chats.map((chat) => (
-            <div 
-              key={chat.id} 
-              className={`group flex items-center justify-between p-2 border ${
-                chat.id === activeChatId ? 'border-[#20ffe5] text-[#20ffe5]' : 'border-transparent text-white hover:bg-white/5'
-              }`}
+            <div
+              key={chat.id}
+              className={`group flex items-center justify-between p-2 border ${chat.id === activeChatId ? 'border-[#20ffe5] text-[#20ffe5]' : 'border-transparent text-white hover:bg-white/5'
+                }`}
             >
               <button
                 onClick={() => useChatStore.setState({ activeChatId: chat.id })}
@@ -275,7 +275,7 @@ export default function Desktop_1() {
               <div className="border border-white p-6 md:p-8 bg-[#000080] text-center my-8 flex flex-col gap-4">
                 <h2 className="text-xl md:text-2xl text-[#20ffe5] font-bold">blues. SYSTEM V1.0</h2>
                 <p className="text-sm md:text-base leading-relaxed text-white/80">
-                  Welcome to the blues AI retro terminal. 
+                  Welcome to the blues AI retro terminal.
                   Please send a message to start conversing, or click the Settings gear icon to select a model/configure keys.
                 </p>
                 <div className="text-xs md:text-sm text-left bg-black/30 p-4 border border-white/20 text-[#f6ff00]">
@@ -287,17 +287,21 @@ export default function Desktop_1() {
               messages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`${
-                    msg.role === 'user'
-                      ? 'self-end border border-white p-4 max-w-[90%] md:max-w-[70%] bg-[#000080]'
-                      : 'self-start max-w-[95%] md:max-w-[85%] flex flex-col gap-4'
-                  }`}
+                  className={`${msg.role === 'user'
+                    ? 'self-end border border-white p-4 max-w-[90%] md:max-w-[70%] bg-[#000080]'
+                    : 'self-start max-w-[95%] md:max-w-[85%] flex flex-col gap-4'
+                    }`}
                 >
-                  <p className={`${
-                    msg.role === 'user' ? 'text-sm md:text-base' : 'text-lg md:text-xl font-extrabold'
-                  } leading-relaxed whitespace-pre-wrap`}>
-                    {msg.content || (isStreaming && idx === messages.length - 1 ? '▋' : '')}
-                  </p>
+                  {msg.role === 'user' ? (
+                    <p className="leading-relaxed whitespace-pre-wrap">
+                      {msg.content}
+                    </p>
+                  ) : (
+                    <MarkdownRenderer
+                      content={msg.content}
+                      isStreaming={isStreaming && idx === messages.length - 1}
+                    />
+                  )}
 
                   {msg.role === 'assistant' && (
                     <div className="flex items-center gap-3 pt-2 text-white/70">
@@ -360,7 +364,7 @@ export default function Desktop_1() {
           </div>
         </div>
       </main>
-      
+
       {/* Settings Modal */}
       {isSettingsOpen && <SettingsModal />}
     </div>

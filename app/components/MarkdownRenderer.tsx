@@ -19,7 +19,7 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
         remarkPlugins={[remarkGfm]}
         components={{
           // Custom block and inline code renderer
-          code({ node, className, children, ...props }) {
+          code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const isInline = !match;
 

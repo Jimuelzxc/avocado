@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Copy, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import { RotateCcw, Copy, Settings as SettingsIcon, Trash2, Menu, X } from 'lucide-react';
 import { Braces, ArrowUp } from 'lucide-react'
 import { useChatStore, Message } from './store/chatStore';
 import { SettingsModal } from './components/SettingsModal';
@@ -30,6 +30,7 @@ export default function Desktop_1() {
   const [inputValue, setInputValue] = useState('');
   const [mounted, setMounted] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent hydration errors by waiting for client-side mount
@@ -258,10 +259,11 @@ export default function Desktop_1() {
           <h1 className="text-accent text-sm tracking-wide">blues.</h1>
           <div className="flex gap-3">
             <button
-              onClick={() => createChat()}
-              className="text-sm border border-border px-2 py-1 hover:bg-surface-overlay cursor-pointer"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="hover:text-accent cursor-pointer p-1"
+              aria-label="Open sidebar"
             >
-              New
+              <Menu size={20} />
             </button>
             <button
               onClick={() => setSettingsOpen(true)}
@@ -377,6 +379,58 @@ export default function Desktop_1() {
           </div>
         </div>
       </main>
+
+      {/* Mobile sidebar drawer overlay */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div
+            className="fixed inset-0 bg-black/60"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          <aside className="fixed left-0 top-0 h-full w-72 bg-surface border-r border-border flex flex-col z-50 animate-slide-in">
+            <div className="p-5 flex justify-between items-center">
+              <h1 className="text-accent text-base tracking-wide">blues.</h1>
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="p-1 hover:text-accent transition-colors cursor-pointer"
+                aria-label="Close sidebar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-5 pb-6 flex gap-2">
+              <button
+                onClick={() => { createChat(); setIsMobileSidebarOpen(false); }}
+                className="flex-1 border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+              >
+                New Chat
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-2">
+              {chats.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`group flex items-center justify-between p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'}`}
+                >
+                  <button
+                    onClick={() => { useChatStore.setState({ activeChatId: chat.id }); setIsMobileSidebarOpen(false); }}
+                    className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
+                  >
+                    {chat.title}
+                  </button>
+                  <button
+                    onClick={() => deleteChat(chat.id)}
+                    className="opacity-0 group-hover:opacity-100 hover:text-accent-secondary cursor-pointer p-1 transition-opacity"
+                    aria-label="Delete Chat"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      )}
 
       {/* Settings Modal */}
       {isSettingsOpen && <SettingsModal />}

@@ -257,21 +257,13 @@ export default function Desktop_1() {
         {/* Mobile Header */}
         <div className="md:hidden flex justify-between items-center p-4 border-b border-border">
           <h1 className="text-accent text-sm tracking-wide">blues.</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="hover:text-accent cursor-pointer p-1"
-              aria-label="Open sidebar"
-            >
-              <Menu size={20} />
-            </button>
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="hover:text-accent cursor-pointer"
-            >
-              <SettingsIcon size={18} />
-            </button>
-          </div>
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="hover:text-accent cursor-pointer p-1"
+            aria-label="Open sidebar"
+          >
+            <Menu size={20} />
+          </button>
         </div>
 
         {/* Messages list */}
@@ -282,7 +274,7 @@ export default function Desktop_1() {
                 <h2 className="text-lg md:text-xl text-accent font-bold">blues. SYSTEM V1.0</h2>
                 <p className="text-xs md:text-sm leading-relaxed text-text-secondary">
                   Welcome to the blues AI retro terminal.
-                  Please send a message to start conversing, or click the Settings gear icon to select a model/configure keys.
+                  Please send a message to start conversing, or open the sidebar to configure your model and keys.
                 </p>
                 <div className="text-xs md:text-sm text-left bg-surface-overlay p-4 border border-border/20 text-accent-secondary">
                   Current Provider: <span className="text-text-primary">{baseUrl}</span><br />

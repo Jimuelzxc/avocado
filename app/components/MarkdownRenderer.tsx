@@ -14,7 +14,7 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
   const markdownContent = content + (isStreaming ? '▋' : '');
 
   return (
-    <div className="w-full select-text selection:bg-[#20ffe5]/30">
+    <div className="w-full select-text selection:bg-[var(--selection)]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -26,7 +26,7 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
             if (isInline) {
               return (
                 <code
-                  className="bg-black/30 border border-white/20 text-[#20ffe5] px-1.5 py-0.5 rounded-sm text-sm font-mono"
+                  className="bg-surface-overlay border border-border/20 text-accent px-1.5 py-0.5 rounded-sm text-sm font-mono"
                   {...props}
                 >
                   {children}
@@ -41,24 +41,24 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
 
           // Custom table elements
           table: ({ children }) => (
-            <div className="overflow-x-auto my-4 border-2 border-white max-w-full">
-              <table className="min-w-full divide-y-2 divide-white text-left text-sm font-mono bg-black text-white">
+            <div className="overflow-x-auto my-4 border-2 border-border max-w-full">
+              <table className="min-w-full divide-y-2 divide-border text-left text-sm font-mono bg-surface text-text-primary">
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-[#20ffe5] text-black">
+            <thead className="bg-accent text-text-primary">
               {children}
             </thead>
           ),
           tbody: ({ children }) => (
-            <tbody className="divide-y divide-white/50">
+            <tbody className="divide-y divide-border/50">
               {children}
             </tbody>
           ),
           tr: ({ children }) => (
-            <tr className="divide-x divide-white">
+            <tr className="divide-x divide-border">
               {children}
             </tr>
           ),
@@ -68,7 +68,7 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
             </th>
           ),
           td: ({ children }) => (
-            <td className="px-3 py-2 border border-white">
+            <td className="px-3 py-2 border border-border">
               {children}
             </td>
           ),
@@ -79,7 +79,7 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
           ol: ({ children }) => <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>,
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-[#20ffe5] pl-4 italic my-4 text-white/80 bg-black/20 py-1">
+            <blockquote className="border-l-4 border-accent pl-4 italic my-4 text-text-secondary bg-surface-overlay py-1">
               {children}
             </blockquote>
           ),
@@ -88,14 +88,14 @@ export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#20ffe5] underline hover:text-[#f6ff00] transition-colors"
+              className="text-accent underline hover:text-accent-secondary transition-colors"
             >
               {children}
             </a>
           ),
-          h1: ({ children }) => <h1 className="text-xl font-bold my-4 text-[#20ffe5]">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-bold my-3 text-[#20ffe5]">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-base font-bold my-2 text-[#20ffe5]">{children}</h3>,
+          h1: ({ children }) => <h1 className="text-xl font-bold my-4 text-accent">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-lg font-bold my-3 text-accent">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-base font-bold my-2 text-accent">{children}</h3>,
         }}
       >
         {markdownContent}
@@ -119,13 +119,13 @@ function CodeBlock({ language, code }: CodeBlockProps) {
   };
 
   return (
-    <div className="border border-white my-4 flex flex-col bg-black">
+    <div className="border border-border my-4 flex flex-col bg-surface">
       {/* Retro DOS Window header */}
-      <div className="flex justify-between items-center bg-[#000080] border-b border-white px-3 py-1.5 text-xs text-white font-mono uppercase select-none">
-        <span className="text-[#20ffe5] font-bold">[{language}]</span>
+      <div className="flex justify-between items-center bg-surface border-b border-border px-3 py-1.5 text-xs text-white font-mono uppercase select-none">
+        <span className="text-accent font-bold">[{language}]</span>
         <button
           onClick={handleCopy}
-          className="hover:text-[#f6ff00] font-bold focus:outline-none cursor-pointer transition-colors active:text-[#20ffe5]"
+          className="hover:text-accent-secondary font-bold focus:outline-none cursor-pointer transition-colors active:text-[#20ffe5]"
         >
           {copied ? '[COPIED!]' : '[COPY]'}
         </button>

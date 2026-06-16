@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, Copy, Send, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import { Braces, ArrowUp } from 'lucide-react'
 import { useChatStore, Message } from './store/chatStore';
 import { SettingsModal } from './components/SettingsModal';
+import { SystemPromptModal } from './components/SystemPromptModal';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 
 const EMPTY_MESSAGES: Message[] = [];
@@ -27,6 +29,7 @@ export default function Desktop_1() {
 
   const [inputValue, setInputValue] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent hydration errors by waiting for client-side mount
@@ -352,15 +355,24 @@ export default function Desktop_1() {
                   }
                 }}
               />
-              <div className="absolute bottom-4 right-4">
-                <button
-                  type="submit"
-                  disabled={isStreaming || !inputValue.trim()}
-                  className="p-2 hover:bg-white/10 rounded-sm transition-colors text-white hover:text-[#20ffe5] disabled:opacity-50 disabled:hover:text-white cursor-pointer"
-                  aria-label="Send message"
-                >
-                  <Send size={22} strokeWidth={1.5} />
-                </button>
+              <div className=" flex justify-between items-center w-full">
+                <div className="text-white">
+                  <button id="system-prompt" onClick={() => setIsSystemPromptOpen(true)}>
+                    <Braces size={22} strokeWidth={1.5} />
+                  </button>
+
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isStreaming || !inputValue.trim()}
+                    className="p-2 hover:bg-white/10 rounded-sm transition-colors text-white hover:text-[#20ffe5] disabled:opacity-50 disabled:hover:text-white cursor-pointer"
+                    aria-label="Send message"
+                  >
+                    <ArrowUp size={22} strokeWidth={1.5} />
+                  </button>
+                </div>
+
               </div>
             </form>
           </div>
@@ -369,6 +381,9 @@ export default function Desktop_1() {
 
       {/* Settings Modal */}
       {isSettingsOpen && <SettingsModal />}
+
+      {/* System Prompt Modal */}
+      {isSystemPromptOpen && <SystemPromptModal onClose={() => setIsSystemPromptOpen(false)} />}
     </div>
   );
 }

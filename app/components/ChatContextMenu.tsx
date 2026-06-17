@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useFolderStore, Folder } from '../store/folderStore';
-import { useTagStore, Tag } from '../store/tagStore';
+import { useFolderStore } from '../store/folderStore';
+import { useTagStore } from '../store/tagStore';
 import { useChatStore } from '../store/chatStore';
 import { Folder as FolderIcon, Tags, X, Check } from 'lucide-react';
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useChatStore } from './chatStore';
 
 export interface Tag {
   id: string;
@@ -35,12 +36,11 @@ export const useTagStore = create<TagState>()(
 
       deleteTag: (id) =>
         set((s) => {
-          const { useChatStore } = require('./chatStore');
-          const chats: { id: string; tagIds: string[] }[] = useChatStore.getState().chats;
+          const chats = useChatStore.getState().chats;
           useChatStore.setState({
-            chats: chats.map((c: { id: string; tagIds: string[] }) => ({
+            chats: chats.map((c) => ({
               ...c,
-              tagIds: c.tagIds.filter((t: string) => t !== id),
+              tagIds: c.tagIds.filter((t) => t !== id),
             })),
           });
           return { tags: s.tags.filter((t) => t.id !== id), activeTagIds: s.activeTagIds.filter((tid) => tid !== id) };
@@ -56,27 +56,23 @@ export const useTagStore = create<TagState>()(
         })),
 
       assignTagToChat: (chatId, tagId) => {
-        const { useChatStore } = require('./chatStore');
-        interface ChatLike { id: string; tagIds: string[] }
-        const chats: ChatLike[] = useChatStore.getState().chats;
-        const chat = chats.find((c: ChatLike) => c.id === chatId);
+        const chats = useChatStore.getState().chats;
+        const chat = chats.find((c) => c.id === chatId);
         if (!chat || chat.tagIds.includes(tagId)) return;
         useChatStore.setState({
-          chats: chats.map((c: ChatLike) =>
+          chats: chats.map((c) =>
             c.id === chatId ? { ...c, tagIds: [...c.tagIds, tagId] } : c
           ),
         });
       },
 
       removeTagFromChat: (chatId, tagId) => {
-        const { useChatStore } = require('./chatStore');
-        interface ChatLike { id: string; tagIds: string[] }
-        const chats: ChatLike[] = useChatStore.getState().chats;
-        const chat = chats.find((c: ChatLike) => c.id === chatId);
+        const chats = useChatStore.getState().chats;
+        const chat = chats.find((c) => c.id === chatId);
         if (!chat) return;
         useChatStore.setState({
-          chats: chats.map((c: ChatLike) =>
-            c.id === chatId ? { ...c, tagIds: c.tagIds.filter((t: string) => t !== tagId) } : c
+          chats: chats.map((c) =>
+            c.id === chatId ? { ...c, tagIds: c.tagIds.filter((t) => t !== tagId) } : c
           ),
         });
       },

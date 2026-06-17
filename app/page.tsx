@@ -1,22 +1,50 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Copy, Settings as SettingsIcon, Trash2, Menu, X } from 'lucide-react';
-import { Braces, ArrowUp } from 'lucide-react'
-import { useChatStore, Message } from './store/chatStore';
+import { RotateCcw, Copy, Settings as SettingsIcon, Trash2, Menu, X, Pencil } from 'lucide-react';
+import { Braces, ArrowUp, Square } from 'lucide-react'
+import { useChatStore, getActivePath } from './store/chatStore';
 import { SettingsModal } from './components/SettingsModal';
 import { SystemPromptModal } from './components/SystemPromptModal';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 
-const EMPTY_MESSAGES: Message[] = [];
+function VersionIndicator({
+  siblings,
+  siblingIdx,
+  onSwitch,
+}: {
+  siblings: { id: string }[];
+  siblingIdx: number;
+  onSwitch: (targetId: string) => void;
+}) {
+  return (
+    <span className="flex items-center gap-1 text-xs text-text-secondary select-none">
+      <button
+        onClick={() => onSwitch(siblings[siblingIdx - 1].id)}
+        disabled={siblingIdx === 0}
+        className="hover:text-accent disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+        aria-label="Previous version"
+      >
+        ‹
+      </button>
+      {siblingIdx + 1}/{siblings.length}
+      <button
+        onClick={() => onSwitch(siblings[siblingIdx + 1].id)}
+        disabled={siblingIdx === siblings.length - 1}
+        className="hover:text-accent disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+        aria-label="Next version"
+      >
+        ›
+      </button>
+    </span>
+  );
+}
 
 export default function Desktop_1() {
   const {
     chats,
     activeChatId,
-    apiKey,
     baseUrl,
     model,
-    systemPrompt,
     isStreaming,
     setSettingsOpen,
     createChat,
@@ -31,7 +59,10 @@ export default function Desktop_1() {
   const [mounted, setMounted] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Prevent hydration errors by waiting for client-side mount
   useEffect(() => {
@@ -43,7 +74,9 @@ export default function Desktop_1() {
 
   // Get active chat messages
   const activeChat = chats.find((c) => c.id === activeChatId);
-  const messages = activeChat ? activeChat.messages : EMPTY_MESSAGES;
+  const activePath = activeChat?.activeLeafId
+    ? getActivePath(activeChat.messages, activeChat.activeLeafId)
+    : [];
 
   // Scroll to bottom on messages update
   const scrollToBottom = () => {
@@ -54,7 +87,7 @@ export default function Desktop_1() {
     if (mounted) {
       scrollToBottom();
     }
-  }, [messages, mounted]);
+  }, [activePath, mounted]);
 
   // Handle initial state setup
   useEffect(() => {
@@ -62,6 +95,85 @@ export default function Desktop_1() {
       createChat();
     }
   }, [mounted, chats.length, createChat]);
+
+  const streamFromActivePath = async (chatId: string, userContent: string) => {
+    const currentState = useChatStore.getState();
+    const currentChat = currentState.chats.find((c) => c.id === chatId);
+    if (!currentChat || !currentChat.activeLeafId) return;
+
+    const fullPath = getActivePath(currentChat.messages, currentChat.activeLeafId);
+    const historyMessages = fullPath.slice(0, -1);
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const response = await fetch('/api/chat', {
+        signal: controller.signal,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: useChatStore.getState().apiKey,
+          baseUrl: useChatStore.getState().baseUrl,
+          model: useChatStore.getState().model,
+          systemPrompt: useChatStore.getState().systemPrompt,
+          messages: [...historyMessages, { role: 'user', content: userContent }],
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        replaceLastMessage(chatId, `Error: ${data.error || 'Failed to fetch AI response'}`);
+        useChatStore.setState({ isStreaming: false });
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) {
+        replaceLastMessage(chatId, 'Error: Response stream is not readable.');
+        useChatStore.setState({ isStreaming: false });
+        return;
+      }
+
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const cleaned = line.trim();
+          if (!cleaned) continue;
+          if (cleaned.startsWith('data: ')) {
+            const dataStr = cleaned.slice(6);
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              const chunk = parsed.choices?.[0]?.delta?.content || '';
+              if (chunk) {
+                updateLastMessage(chatId, chunk);
+              }
+            } catch { }
+          }
+        }
+      }
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      console.error('Streaming error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      replaceLastMessage(chatId, `Error: ${errorMessage}`);
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      useChatStore.setState({ isStreaming: false });
+    }
+  };
 
   const handleSendMessage = async (e?: React.FormEvent | { preventDefault: () => void }, customContent?: string) => {
     e?.preventDefault();
@@ -77,123 +189,80 @@ export default function Desktop_1() {
       targetChatId = createChat();
     }
 
-    // Add user message
-    const userMsg: Message = { role: 'user', content: text };
-    addMessage(targetChatId, userMsg);
+    const activeChatNow = chats.find((c) => c.id === targetChatId);
+    const parentId = activeChatNow?.activeLeafId ?? undefined;
 
-    // Add placeholder assistant message
-    const assistantMsg: Message = { role: 'assistant', content: '' };
-    addMessage(targetChatId, assistantMsg);
+    addMessage(targetChatId, { role: 'user', content: text }, parentId);
 
-    // Set streaming flag in store
     useChatStore.setState({ isStreaming: true });
+    const stateAfterUser = useChatStore.getState();
+    const chatAfterUser = stateAfterUser.chats.find(c => c.id === targetChatId);
+    const userMsgId = chatAfterUser?.activeLeafId ?? undefined;
+    addMessage(targetChatId, { role: 'assistant', content: '' }, userMsgId);
 
-    try {
-      const currentChat = useChatStore.getState().chats.find((c) => c.id === targetChatId);
-      const chatMessages = currentChat ? currentChat.messages.slice(0, -1) : [];
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiKey,
-          baseUrl,
-          model,
-          systemPrompt,
-          messages: [...chatMessages, userMsg],
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        replaceLastMessage(targetChatId, `Error: ${data.error || 'Failed to fetch AI response'}`);
-        useChatStore.setState({ isStreaming: false });
-        return;
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      if (!reader) {
-        replaceLastMessage(targetChatId, 'Error: Response stream is not readable.');
-        useChatStore.setState({ isStreaming: false });
-        return;
-      }
-
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep partial line in buffer
-
-        for (const line of lines) {
-          const cleaned = line.trim();
-          if (!cleaned) continue;
-
-          if (cleaned.startsWith('data: ')) {
-            const dataStr = cleaned.slice(6);
-            if (dataStr === '[DONE]') continue;
-
-            try {
-              const parsed = JSON.parse(dataStr);
-              const chunk = parsed.choices?.[0]?.delta?.content || '';
-              if (chunk) {
-                updateLastMessage(targetChatId, chunk);
-              }
-            } catch {
-              // Ignore incomplete line parse failures
-            }
-          }
-        }
-      }
-    } catch (error: unknown) {
-      console.error('Streaming error:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      replaceLastMessage(targetChatId, `Error: ${errorMessage}`);
-    } finally {
-      useChatStore.setState({ isStreaming: false });
-    }
+    await streamFromActivePath(targetChatId, text);
   };
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
   };
 
-  const handleRegenerate = async (idx: number) => {
+  const handleEdit = (msgId: string, currentContent: string) => {
+    setEditingMsgId(msgId);
+    setEditValue(currentContent);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMsgId(null);
+    setEditValue('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!activeChatId || !editingMsgId || !editValue.trim() || isStreaming) return;
+    const newContent = editValue.trim();
+    const newMsgId = useChatStore.getState().editMessage(activeChatId, editingMsgId, newContent);
+    setEditingMsgId(null);
+    setEditValue('');
+
+    if (newMsgId) {
+      useChatStore.setState({ isStreaming: true });
+      addMessage(activeChatId, { role: 'assistant', content: '' }, newMsgId);
+      await streamFromActivePath(activeChatId, newContent);
+    }
+  };
+
+  const handleRegenerate = async (msgId: string) => {
     if (!activeChatId || isStreaming) return;
     const activeChatNow = chats.find((c) => c.id === activeChatId);
     if (!activeChatNow) return;
 
-    // Find user message prior to this assistant response
-    const prevMessage = activeChatNow.messages[idx - 1];
-    if (!prevMessage || prevMessage.role !== 'user') return;
+    const assistantMsg = activeChatNow.messages.find(m => m.id === msgId);
+    if (!assistantMsg || assistantMsg.role !== 'assistant') return;
+    const parentUserMsg = activeChatNow.messages.find(m => m.id === assistantMsg.parentId);
+    if (!parentUserMsg || parentUserMsg.role !== 'user') return;
 
-    // Remove last AI response and rewrite
-    // Truncate message array to just before the assistant message
-    const updatedMessages = activeChatNow.messages.slice(0, idx);
+    useChatStore.getState().regenerateMessage(activeChatId, msgId);
+    useChatStore.setState({ isStreaming: true });
+    await streamFromActivePath(activeChatId, parentUserMsg.content);
+  };
 
-    // Update store chats state
-    const updatedChats = chats.map((c) => {
-      if (c.id === activeChatId) {
-        return { ...c, messages: updatedMessages };
-      }
-      return c;
-    });
-    useChatStore.setState({ chats: updatedChats });
+  const handleStopStream = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  };
 
-    // Trigger message flow with the prevMessage content
-    await handleSendMessage({ preventDefault: () => { } }, prevMessage.content);
+  const handleSwitchVersion = (targetMsgId: string) => {
+    if (!activeChatId) return;
+    useChatStore.getState().switchVersion(activeChatId, targetMsgId);
   };
 
   // Hydration wrapper to avoid mismatch
   if (!mounted) {
     return (
       <div className="flex h-screen w-full bg-surface text-text-primary justify-center items-center font-mono">
-        <p>LOADING blues. SYSTEM...</p>
+        <p>LOADING avocado. SYSTEM...</p>
       </div>
     );
   }
@@ -206,7 +275,7 @@ export default function Desktop_1() {
       <aside className="hidden md:flex w-72 flex-col border-r border-border h-full shrink-0">
         {/* Logo & Header */}
         <div className="p-5 flex justify-between items-center">
-          <h1 className="text-accent text-base tracking-wide">blues.</h1>
+          <h1 className="text-accent text-base tracking-wide">avocado.</h1>
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-1 hover:text-accent transition-colors cursor-pointer"
@@ -256,7 +325,7 @@ export default function Desktop_1() {
       <main className="flex-1 flex flex-col h-full relative border-border md:border-t-0 border-t">
         {/* Mobile Header */}
         <div className="md:hidden flex justify-between items-center p-4 border-b border-border">
-          <h1 className="text-accent text-sm tracking-wide">blues.</h1>
+          <h1 className="text-accent text-sm tracking-wide">avocado.</h1>
           <button
             onClick={() => setIsMobileSidebarOpen(true)}
             className="hover:text-accent cursor-pointer p-1"
@@ -267,11 +336,11 @@ export default function Desktop_1() {
         </div>
 
         {/* Messages list */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-10">
           <div className="max-w-5xl mx-auto w-full flex flex-col gap-4 md:gap-8">
-            {messages.length === 0 ? (
+            {activePath.length === 0 ? (
               <div className="border border-border p-4 md:p-8 bg-surface text-center my-8 flex flex-col gap-4">
-                <h2 className="text-lg md:text-xl text-accent font-bold">blues. SYSTEM V1.0</h2>
+                <h2 className="text-lg md:text-xl text-accent font-bold">avocado. SYSTEM V1.0</h2>
                 <p className="text-xs md:text-sm leading-relaxed text-text-secondary">
                   Welcome to the blues AI retro terminal.
                   Please send a message to start conversing, or open the sidebar to configure your model and keys.
@@ -282,46 +351,114 @@ export default function Desktop_1() {
                 </div>
               </div>
             ) : (
-              messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`${msg.role === 'user'
-                    ? 'self-end border border-border p-4 max-w-[90%] md:max-w-[70%] bg-surface'
-                    : 'self-start max-w-[95%] md:max-w-[85%] flex flex-col gap-4'
-                    }`}
-                >
-                  {msg.role === 'user' ? (
-                    <p className="leading-relaxed whitespace-pre-wrap">
-                      {msg.content}
-                    </p>
-                  ) : (
-                    <MarkdownRenderer
-                      content={msg.content}
-                      isStreaming={isStreaming && idx === messages.length - 1}
-                    />
-                  )}
+              activePath.map((msg) => {
+                const siblings = activeChat
+                  ? activeChat.messages.filter(m => m.parentId === msg.parentId).sort((a, b) => a.createdAt - b.createdAt)
+                  : [];
+                const siblingIdx = siblings.findIndex(s => s.id === msg.id);
+                const isEditing = editingMsgId === msg.id;
 
-                  {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-3 pt-2 text-text-secondary">
-                      <button
-                        onClick={() => handleRegenerate(idx)}
-                        disabled={isStreaming}
-                        className="hover:text-accent disabled:opacity-50 transition-colors p-1 cursor-pointer"
-                        aria-label="Regenerate response"
-                      >
-                        <RotateCcw size={18} strokeWidth={1.5} />
-                      </button>
-                      <button
-                        onClick={() => handleCopy(msg.content)}
-                        className="hover:text-accent transition-colors p-1 cursor-pointer"
-                        aria-label="Copy to clipboard"
-                      >
-                        <Copy size={18} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))
+                return (
+                  <div
+                    key={msg.id}
+                    className={`${msg.role === 'user'
+                      ? 'self-end flex flex-col items-end'
+                      : 'self-start max-w-[95%] md:max-w-[85%] flex flex-col gap-4'
+                      }`}
+                  >
+                    {msg.role === 'user' ? (
+                      <>
+                        <div className="border border-border p-4 max-w-[90%] md:max-w-[70%] min-w-[200px] bg-surface">
+                          {isEditing ? (
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                className="w-full bg-transparent border border-border p-2 outline-none resize-none text-base font-mono whitespace-pre-wrap"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit();
+                                  }
+                                }}
+                                autoFocus
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleSaveEdit}
+                                  disabled={isStreaming || !editValue.trim()}
+                                  className="text-xs border border-border px-3 py-1 hover:bg-surface-overlay transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="text-xs border border-border px-3 py-1 hover:bg-surface-overlay transition-colors cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          )}
+                        </div>
+                        {!isEditing && (
+                          <div className="flex items-center gap-2 mt-1">
+                            {siblings.length > 1 && (
+                              <VersionIndicator
+                                siblings={siblings}
+                                siblingIdx={siblingIdx}
+                                onSwitch={handleSwitchVersion}
+                              />
+                            )}
+                            <button
+                              onClick={() => handleEdit(msg.id, msg.content)}
+                              disabled={isStreaming}
+                              className="text-text-secondary hover:text-accent transition-colors cursor-pointer disabled:opacity-50 p-1"
+                              aria-label="Edit message"
+                            >
+                              <Pencil size={14} strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <MarkdownRenderer
+                          content={msg.content}
+                          isStreaming={isStreaming && msg.id === activeChat?.activeLeafId}
+                        />
+                        <div className="flex items-center gap-3 pt-2 text-text-secondary">
+                          {siblings.length > 1 && (
+                            <VersionIndicator
+                              siblings={siblings}
+                              siblingIdx={siblingIdx}
+                              onSwitch={handleSwitchVersion}
+                            />
+                          )}
+                          <button
+                            onClick={() => handleRegenerate(msg.id)}
+                            disabled={isStreaming}
+                            className="hover:text-accent disabled:opacity-50 transition-colors p-1 cursor-pointer"
+                            aria-label="Regenerate response"
+                          >
+                            <RotateCcw size={18} strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={() => handleCopy(msg.content)}
+                            className="hover:text-accent transition-colors p-1 cursor-pointer"
+                            aria-label="Copy to clipboard"
+                          >
+                            <Copy size={18} strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -331,7 +468,7 @@ export default function Desktop_1() {
         <div className="p-3 md:p-8 shrink-0 w-full">
           <div className="max-w-5xl mx-auto w-full">
             <form
-              className="border border-border p-4 flex flex-col gap-4 relative min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
+              className="border border-border p-4 md:p-6 flex flex-col gap-4 relative min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
               onSubmit={handleSendMessage}
             >
               <textarea
@@ -356,14 +493,25 @@ export default function Desktop_1() {
 
                 </div>
                 <div>
-                  <button
-                    type="submit"
-                    disabled={isStreaming || !inputValue.trim()}
-                    className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-text-primary hover:text-accent disabled:opacity-50 disabled:hover:text-text-primary cursor-pointer"
-                    aria-label="Send message"
-                  >
-                    <ArrowUp size={22} strokeWidth={1.5} />
-                  </button>
+                  {isStreaming ? (
+                    <button
+                      type="button"
+                      onClick={handleStopStream}
+                      className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-accent-secondary hover:text-red-400 cursor-pointer"
+                      aria-label="Stop streaming"
+                    >
+                      <Square size={22} strokeWidth={1.5} />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={!inputValue.trim()}
+                      className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-text-primary hover:text-accent disabled:opacity-50 disabled:hover:text-text-primary cursor-pointer"
+                      aria-label="Send message"
+                    >
+                      <ArrowUp size={22} strokeWidth={1.5} />
+                    </button>
+                  )}
                 </div>
 
               </div>
@@ -381,7 +529,7 @@ export default function Desktop_1() {
           />
           <aside className="fixed left-0 top-0 h-full w-72 bg-surface border-r border-border flex flex-col z-50 animate-slide-in">
             <div className="p-5 flex justify-between items-center">
-              <h1 className="text-accent text-base tracking-wide">blues.</h1>
+              <h1 className="text-accent text-base tracking-wide">avocado.</h1>
               <div className="flex gap-2 items-center">
                 <button
                   onClick={() => { setSettingsOpen(true); setIsMobileSidebarOpen(false); }}

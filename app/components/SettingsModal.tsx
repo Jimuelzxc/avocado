@@ -86,6 +86,7 @@ export function SettingsModal() {
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
                 <option value="claude">Claude Code</option>
+                <option value="avocado">Avocado</option>
               </select>
             </div>
 

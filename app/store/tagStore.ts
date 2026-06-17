@@ -14,6 +14,8 @@ interface TagState {
   deleteTag: (id: string) => void;
   setActiveTagIds: (ids: string[]) => void;
   toggleTagFilter: (tagId: string) => void;
+  assignTagToChat: (chatId: string, tagId: string) => void;
+  removeTagFromChat: (chatId: string, tagId: string) => void;
 }
 
 const TAG_COLORS = ['#20ffe5', '#f6ff00', '#ff8a65', '#e06c75', '#4fc3f7', '#8bc34a'];
@@ -32,10 +34,17 @@ export const useTagStore = create<TagState>()(
       },
 
       deleteTag: (id) =>
-        set((s) => ({
-          tags: s.tags.filter((t) => t.id !== id),
-          activeTagIds: s.activeTagIds.filter((tid) => tid !== id),
-        })),
+        set((s) => {
+          const { useChatStore } = require('./chatStore');
+          const chats: { id: string; tagIds: string[] }[] = useChatStore.getState().chats;
+          useChatStore.setState({
+            chats: chats.map((c: { id: string; tagIds: string[] }) => ({
+              ...c,
+              tagIds: c.tagIds.filter((t: string) => t !== id),
+            })),
+          });
+          return { tags: s.tags.filter((t) => t.id !== id), activeTagIds: s.activeTagIds.filter((tid) => tid !== id) };
+        }),
 
       setActiveTagIds: (ids) => set({ activeTagIds: ids }),
 
@@ -45,6 +54,32 @@ export const useTagStore = create<TagState>()(
             ? s.activeTagIds.filter((id) => id !== tagId)
             : [...s.activeTagIds, tagId],
         })),
+
+      assignTagToChat: (chatId, tagId) => {
+        const { useChatStore } = require('./chatStore');
+        interface ChatLike { id: string; tagIds: string[] }
+        const chats: ChatLike[] = useChatStore.getState().chats;
+        const chat = chats.find((c: ChatLike) => c.id === chatId);
+        if (!chat || chat.tagIds.includes(tagId)) return;
+        useChatStore.setState({
+          chats: chats.map((c: ChatLike) =>
+            c.id === chatId ? { ...c, tagIds: [...c.tagIds, tagId] } : c
+          ),
+        });
+      },
+
+      removeTagFromChat: (chatId, tagId) => {
+        const { useChatStore } = require('./chatStore');
+        interface ChatLike { id: string; tagIds: string[] }
+        const chats: ChatLike[] = useChatStore.getState().chats;
+        const chat = chats.find((c: ChatLike) => c.id === chatId);
+        if (!chat) return;
+        useChatStore.setState({
+          chats: chats.map((c: ChatLike) =>
+            c.id === chatId ? { ...c, tagIds: c.tagIds.filter((t: string) => t !== tagId) } : c
+          ),
+        });
+      },
     }),
     {
       name: 'blues-tag-storage',

@@ -13,6 +13,7 @@ interface TagState {
   activeTagIds: string[];
   createTag: (name: string, color?: string) => string;
   deleteTag: (id: string) => void;
+  renameTag: (id: string, name: string) => void;
   setActiveTagIds: (ids: string[]) => void;
   toggleTagFilter: (tagId: string) => void;
   assignTagToChat: (chatId: string, tagId: string) => void;
@@ -45,6 +46,11 @@ export const useTagStore = create<TagState>()(
           });
           return { tags: s.tags.filter((t) => t.id !== id), activeTagIds: s.activeTagIds.filter((tid) => tid !== id) };
         }),
+
+      renameTag: (id, name) =>
+        set((s) => ({
+          tags: s.tags.map((t) => (t.id === id ? { ...t, name } : t)),
+        })),
 
       setActiveTagIds: (ids) => set({ activeTagIds: ids }),
 

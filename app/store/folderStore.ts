@@ -9,6 +9,16 @@ export interface Folder {
   createdAt: number;
 }
 
+function collectDescendantIds(folders: Folder[], parentId: string): string[] {
+  const ids: string[] = [];
+  for (const f of folders) {
+    if (f.parentId === parentId) {
+      ids.push(f.id, ...collectDescendantIds(folders, f.id));
+    }
+  }
+  return ids;
+}
+
 interface FolderState {
   folders: Folder[];
   activeFolderId: string | null;
@@ -38,10 +48,13 @@ export const useFolderStore = create<FolderState>()(
         })),
 
       deleteFolder: (id) =>
-        set((s) => ({
-          folders: s.folders.filter((f) => f.id !== id && f.parentId !== id),
-          activeFolderId: s.activeFolderId === id ? null : s.activeFolderId,
-        })),
+        set((s) => {
+          const idsToRemove = [id, ...collectDescendantIds(s.folders, id)];
+          return {
+            folders: s.folders.filter((f) => !idsToRemove.includes(f.id)),
+            activeFolderId: idsToRemove.includes(s.activeFolderId ?? '') ? null : s.activeFolderId,
+          };
+        }),
 
       setActiveFolderId: (id) => set({ activeFolderId: id }),
 

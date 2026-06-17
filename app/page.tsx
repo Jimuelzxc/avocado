@@ -3,6 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, Copy, Settings as SettingsIcon, Trash2, Menu, X, Pencil } from 'lucide-react';
 import { Braces, ArrowUp, Square } from 'lucide-react'
 import { useChatStore, getActivePath } from './store/chatStore';
+import { useFolderStore } from './store/folderStore';
+import { useTagStore } from './store/tagStore';
+import { FolderTree } from './components/FolderTree';
+import { TagCloud } from './components/TagCloud';
+import { ChatContextMenu } from './components/ChatContextMenu';
 import { SettingsModal } from './components/SettingsModal';
 import { SystemPromptModal } from './components/SystemPromptModal';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
@@ -61,8 +66,32 @@ export default function Desktop_1() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [contextMenuPos, setContextMenuPos] = useState<{ chatId: string; x: number; y: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const { folders, activeFolderId } = useFolderStore();
+  const { tags, activeTagIds } = useTagStore();
+
+  const filteredChats = chats.filter((chat) => {
+    if (activeFolderId !== null) {
+      const descendantIds: string[] = [];
+      function collectDescendants(parentId: string) {
+        const kids = folders.filter((f) => f.parentId === parentId);
+        for (const k of kids) {
+          descendantIds.push(k.id);
+          collectDescendants(k.id);
+        }
+      }
+      collectDescendants(activeFolderId);
+      const allowedFolderIds = [activeFolderId, ...descendantIds];
+      if (!chat.folderId || !allowedFolderIds.includes(chat.folderId)) return false;
+    }
+    if (activeTagIds.length > 0) {
+      if (!chat.tagIds.some((t) => activeTagIds.includes(t))) return false;
+    }
+    return true;
+  });
 
   // Prevent hydration errors by waiting for client-side mount
   useEffect(() => {
@@ -295,27 +324,60 @@ export default function Desktop_1() {
           </button>
         </div>
 
+        {/* Folder Tree */}
+        <div className="border-b border-border pb-2 mb-2 mx-3">
+          <FolderTree />
+        </div>
+
+        {/* Tag Cloud */}
+        <div className="border-b border-border pb-2 mb-2 mx-3">
+          <TagCloud />
+        </div>
+
         {/* Chat History List */}
         <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-2">
-          {chats.map((chat) => (
+          {filteredChats.map((chat) => (
             <div
               key={chat.id}
-              className={`group flex items-center justify-between p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'
+              className={`group flex flex-col p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'
                 }`}
+              onContextMenu={(e) => { e.preventDefault(); setContextMenuPos({ chatId: chat.id, x: e.clientX, y: e.clientY }); }}
             >
-              <button
-                onClick={() => useChatStore.setState({ activeChatId: chat.id })}
-                className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
-              >
-                {chat.title}
-              </button>
-              <button
-                onClick={() => deleteChat(chat.id)}
-                className="opacity-0 group-hover:opacity-100 hover:text-accent-secondary cursor-pointer p-1 transition-opacity"
-                aria-label="Delete Chat"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => useChatStore.setState({ activeChatId: chat.id })}
+                  className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
+                >
+                  {chat.title}
+                </button>
+                <button
+                  onClick={() => deleteChat(chat.id)}
+                  className="opacity-0 group-hover:opacity-100 hover:text-accent-secondary cursor-pointer p-1 transition-opacity"
+                  aria-label="Delete Chat"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {chat.tagIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {chat.tagIds.slice(0, 3).map((tagId) => {
+                    const tag = tags.find((t) => t.id === tagId);
+                    if (!tag) return null;
+                    return (
+                      <span
+                        key={tagId}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] border border-border"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                        {tag.name}
+                      </span>
+                    );
+                  })}
+                  {chat.tagIds.length > 3 && (
+                    <span className="text-[10px] text-text-secondary">+{chat.tagIds.length - 3}</span>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -520,6 +582,24 @@ export default function Desktop_1() {
         </div>
       </main>
 
+      {contextMenuPos && (
+        <div
+          className="fixed inset-0 z-50"
+          onClick={() => setContextMenuPos(null)}
+        >
+          <div
+            className="fixed"
+            style={{ left: contextMenuPos.x, top: contextMenuPos.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChatContextMenu
+              chatId={contextMenuPos.chatId}
+              onClose={() => setContextMenuPos(null)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Mobile sidebar drawer overlay */}
       {isMobileSidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
@@ -555,25 +635,54 @@ export default function Desktop_1() {
                 New Chat
               </button>
             </div>
+            <div className="border-b border-border pb-2 mb-2 mx-3">
+              <FolderTree />
+            </div>
+            <div className="border-b border-border pb-2 mb-2 mx-3">
+              <TagCloud />
+            </div>
             <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-2">
-              {chats.map((chat) => (
+              {filteredChats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`group flex items-center justify-between p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'}`}
+                  className={`group flex flex-col p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'}`}
+                  onContextMenu={(e) => { e.preventDefault(); setContextMenuPos({ chatId: chat.id, x: e.clientX, y: e.clientY }); }}
                 >
-                  <button
-                    onClick={() => { useChatStore.setState({ activeChatId: chat.id }); setIsMobileSidebarOpen(false); }}
-                    className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
-                  >
-                    {chat.title}
-                  </button>
-                  <button
-                    onClick={() => deleteChat(chat.id)}
-                    className="opacity-0 group-hover:opacity-100 hover:text-accent-secondary cursor-pointer p-1 transition-opacity"
-                    aria-label="Delete Chat"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => { useChatStore.setState({ activeChatId: chat.id }); setIsMobileSidebarOpen(false); }}
+                      className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
+                    >
+                      {chat.title}
+                    </button>
+                    <button
+                      onClick={() => deleteChat(chat.id)}
+                      className="opacity-0 group-hover:opacity-100 hover:text-accent-secondary cursor-pointer p-1 transition-opacity"
+                      aria-label="Delete Chat"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  {chat.tagIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {chat.tagIds.slice(0, 3).map((tagId) => {
+                        const tag = tags.find((t) => t.id === tagId);
+                        if (!tag) return null;
+                        return (
+                          <span
+                            key={tagId}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] border border-border"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                            {tag.name}
+                          </span>
+                        );
+                      })}
+                      {chat.tagIds.length > 3 && (
+                        <span className="text-[10px] text-text-secondary">+{chat.tagIds.length - 3}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

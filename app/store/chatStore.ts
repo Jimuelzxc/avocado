@@ -14,6 +14,8 @@ export interface Chat {
   title: string;
   messages: Message[];
   activeLeafId: string | null;
+  folderId: string | null;
+  tagIds: string[];
 }
 
 export interface Settings {
@@ -96,6 +98,8 @@ function migrateChat(chat: { id: string; title: string; messages: any[] }): Chat
     title: chat.title,
     messages,
     activeLeafId: lastId,
+    folderId: null,
+    tagIds: [],
   };
 }
 
@@ -124,6 +128,8 @@ export const useChatStore = create<ChatState>()(
           title: 'New Chat',
           messages: [],
           activeLeafId: null,
+          folderId: null,
+          tagIds: [],
         };
         set((state) => ({
           chats: [newChat, ...state.chats],

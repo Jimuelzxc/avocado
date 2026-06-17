@@ -399,7 +399,7 @@ export default function Desktop_1() {
 
         {/* Messages list */}
         <div className="flex-1 overflow-y-auto p-4 md:p-10">
-          <div className="max-w-5xl mx-auto w-full flex flex-col gap-4 md:gap-8">
+          <div className="max-w-5xl mx-auto w-full flex flex-col gap-3 md:gap-8">
             {activePath.length === 0 ? (
               <div className="border border-border p-4 md:p-8 bg-surface text-center my-8 flex flex-col gap-4">
                 <h2 className="text-lg md:text-xl text-accent font-bold">avocado. SYSTEM V1.0</h2>
@@ -407,7 +407,7 @@ export default function Desktop_1() {
                   Welcome to the blues AI retro terminal.
                   Please send a message to start conversing, or open the sidebar to configure your model and keys.
                 </p>
-                <div className="text-xs md:text-sm text-left bg-surface-overlay p-4 border border-border/20 text-accent-secondary">
+                <div className="text-xs text-left bg-surface-overlay p-4 border border-border/20 text-accent-secondary">
                   Current Provider: <span className="text-text-primary">{baseUrl}</span><br />
                   Active Model: <span className="text-text-primary">{model}</span>
                 </div>
@@ -425,12 +425,12 @@ export default function Desktop_1() {
                     key={msg.id}
                     className={`${msg.role === 'user'
                       ? 'self-end flex flex-col items-end'
-                      : 'self-start max-w-[95%] md:max-w-[85%] flex flex-col gap-4'
+                      : 'self-start w-full md:max-w-[85%] flex flex-col gap-4'
                       }`}
                   >
                     {msg.role === 'user' ? (
                       <>
-                        <div className="border border-border p-4 max-w-[90%] md:max-w-[70%] min-w-[200px] bg-surface">
+                        <div className="border border-border p-4 w-full md:max-w-[70%] min-w-0 md:min-w-[200px] max-w-full bg-surface">
                           {isEditing ? (
                             <div className="flex flex-col gap-2">
                               <textarea
@@ -530,7 +530,7 @@ export default function Desktop_1() {
         <div className="p-3 md:p-8 shrink-0 w-full">
           <div className="max-w-5xl mx-auto w-full">
             <form
-              className="border border-border p-4 md:p-6 flex flex-col gap-4 relative min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
+              className="border border-border p-3 md:p-6 flex flex-col gap-3 md:gap-4 relative min-h-[100px] md:min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
               onSubmit={handleSendMessage}
             >
               <textarea

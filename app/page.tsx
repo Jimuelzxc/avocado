@@ -12,7 +12,6 @@ import { SettingsModal } from './components/SettingsModal';
 import { SystemPromptModal } from './components/SystemPromptModal';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { compressImage } from './lib/imageCompress';
-import { extractPdfText } from './lib/extractPdf';
 import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
 import { ContentBlock, MessageContent } from './store/chatStore';
 import { Paperclip } from 'lucide-react';
@@ -287,6 +286,7 @@ export default function Desktop_1() {
         const data = await compressImage(file);
         setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: file.name }]);
       } else if (file.type === 'application/pdf') {
+        const { extractPdfText } = await import('./lib/extractPdf');
         const { text } = await extractPdfText(file);
         setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'pdf', data: text, filename: file.name, name: file.name }]);
       }
@@ -316,6 +316,7 @@ export default function Desktop_1() {
         const data = await compressImage(file);
         setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: file.name }]);
       } else if (file.type === 'application/pdf') {
+        const { extractPdfText } = await import('./lib/extractPdf');
         const { text } = await extractPdfText(file);
         setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'pdf', data: text, filename: file.name, name: file.name }]);
       }

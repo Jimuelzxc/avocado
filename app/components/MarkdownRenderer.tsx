@@ -4,14 +4,25 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { MessageContent } from '../store/chatStore';
 
 interface MarkdownRendererProps {
-  content: string;
+  content: MessageContent;
   isStreaming?: boolean;
 }
 
+function contentToMarkdown(content: MessageContent): string {
+  if (typeof content === 'string') return content;
+  return content.map(block => {
+    if (block.type === 'text') return block.text;
+    if (block.type === 'image_url') return `![Image](${block.image_url.url})`;
+    if (block.type === 'pdf_text') return block.text;
+    return '';
+  }).join('\n\n');
+}
+
 export function MarkdownRenderer({ content, isStreaming }: MarkdownRendererProps) {
-  const markdownContent = content + (isStreaming ? '▋' : '');
+  const markdownContent = contentToMarkdown(content) + (isStreaming ? '▋' : '');
 
   return (
     <div className="w-full select-text selection:bg-[var(--selection)]">

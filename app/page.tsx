@@ -11,6 +11,11 @@ import { ChatContextMenu } from './components/ChatContextMenu';
 import { SettingsModal } from './components/SettingsModal';
 import { SystemPromptModal } from './components/SystemPromptModal';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
+import { compressImage } from './lib/imageCompress';
+import { extractPdfText } from './lib/extractPdf';
+import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
+import { ContentBlock, MessageContent } from './store/chatStore';
+import { FileImage } from 'lucide-react';
 
 function VersionIndicator({
   siblings,
@@ -69,6 +74,8 @@ export default function Desktop_1() {
   const [contextMenuPos, setContextMenuPos] = useState<{ chatId: string; x: number; y: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { folders, activeFolderId } = useFolderStore();
   const { tags, activeTagIds } = useTagStore();
@@ -125,7 +132,7 @@ export default function Desktop_1() {
     }
   }, [mounted, chats.length, createChat]);
 
-  const streamFromActivePath = async (chatId: string, userContent: string) => {
+  const streamFromActivePath = async (chatId: string, userContent: MessageContent) => {
     const currentState = useChatStore.getState();
     const currentChat = currentState.chats.find((c) => c.id === chatId);
     if (!currentChat || !currentChat.activeLeafId) return;
@@ -204,10 +211,20 @@ export default function Desktop_1() {
     }
   };
 
+  const contentToString = (content: MessageContent): string => {
+    if (typeof content === 'string') return content;
+    return content.map(block => {
+      if (block.type === 'text') return block.text;
+      if (block.type === 'image_url') return '[Image]';
+      if (block.type === 'pdf_text') return `[PDF: ${block.filename}]`;
+      return '';
+    }).join('\n');
+  };
+
   const handleSendMessage = async (e?: React.FormEvent | { preventDefault: () => void }, customContent?: string) => {
     e?.preventDefault();
     const text = customContent ?? inputValue;
-    if (!text.trim() || isStreaming) return;
+    if ((!text.trim() && attachments.length === 0) || isStreaming) return;
 
     if (!customContent) {
       setInputValue('');
@@ -221,7 +238,23 @@ export default function Desktop_1() {
     const activeChatNow = chats.find((c) => c.id === targetChatId);
     const parentId = activeChatNow?.activeLeafId ?? undefined;
 
-    addMessage(targetChatId, { role: 'user', content: text }, parentId);
+    let contentToSend: MessageContent;
+    if (attachments.length > 0) {
+      const blocks: ContentBlock[] = [];
+      if (text.trim()) blocks.push({ type: 'text', text });
+      for (const att of attachments) {
+        if (att.type === 'image') {
+          blocks.push({ type: 'image_url', image_url: { url: att.data } });
+        } else if (att.type === 'pdf') {
+          blocks.push({ type: 'pdf_text', text: att.data, filename: att.filename || att.name });
+        }
+      }
+      contentToSend = blocks;
+    } else {
+      contentToSend = text;
+    }
+    addMessage(targetChatId, { role: 'user', content: contentToSend }, parentId);
+    setAttachments([]);
 
     useChatStore.setState({ isStreaming: true });
     const stateAfterUser = useChatStore.getState();
@@ -229,7 +262,7 @@ export default function Desktop_1() {
     const userMsgId = chatAfterUser?.activeLeafId ?? undefined;
     addMessage(targetChatId, { role: 'assistant', content: '' }, userMsgId);
 
-    await streamFromActivePath(targetChatId, text);
+    await streamFromActivePath(targetChatId, contentToSend);
   };
 
   const handleCopy = (content: string) => {
@@ -244,6 +277,53 @@ export default function Desktop_1() {
   const handleCancelEdit = () => {
     setEditingMsgId(null);
     setEditValue('');
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith('image/')) {
+        const data = await compressImage(file);
+        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: file.name }]);
+      } else if (file.type === 'application/pdf') {
+        const { text } = await extractPdfText(file);
+        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'pdf', data: text, filename: file.name, name: file.name }]);
+      }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        const data = await compressImage(file);
+        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: 'Pasted image' }]);
+      }
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith('image/')) {
+        const data = await compressImage(file);
+        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: file.name }]);
+      } else if (file.type === 'application/pdf') {
+        const { text } = await extractPdfText(file);
+        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'pdf', data: text, filename: file.name, name: file.name }]);
+      }
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleSaveEdit = async () => {
@@ -463,7 +543,7 @@ export default function Desktop_1() {
                               </div>
                             </div>
                           ) : (
-                            <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                            <MarkdownRenderer content={msg.content} />
                           )}
                         </div>
                         {!isEditing && (
@@ -476,7 +556,7 @@ export default function Desktop_1() {
                               />
                             )}
                             <button
-                              onClick={() => handleEdit(msg.id, msg.content)}
+                              onClick={() => handleEdit(msg.id, contentToString(msg.content))}
                               disabled={isStreaming}
                               className="text-text-secondary hover:text-accent transition-colors cursor-pointer disabled:opacity-50 p-1"
                               aria-label="Edit message"
@@ -509,7 +589,7 @@ export default function Desktop_1() {
                             <RotateCcw size={18} strokeWidth={1.5} />
                           </button>
                           <button
-                            onClick={() => handleCopy(msg.content)}
+                            onClick={() => handleCopy(contentToString(msg.content))}
                             className="hover:text-accent transition-colors p-1 cursor-pointer"
                             aria-label="Copy to clipboard"
                           >
@@ -532,7 +612,11 @@ export default function Desktop_1() {
             <form
               className="border border-border p-3 md:p-6 flex flex-col gap-3 md:gap-4 relative min-h-[100px] md:min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
               onSubmit={handleSendMessage}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
             >
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleFileSelect} />
               <textarea
                 className="w-full bg-transparent border-none outline-none resize-none text-base placeholder:text-text-secondary min-h-[60px] font-mono"
                 placeholder="Ask a question..."
@@ -547,8 +631,12 @@ export default function Desktop_1() {
                   }
                 }}
               />
+              <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
               <div className=" flex justify-between items-center w-full">
-                <div className="text-text-primary">
+                <div className="text-text-primary flex items-center gap-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()}>
+                    <FileImage size={22} strokeWidth={1.5} />
+                  </button>
                   <button id="system-prompt" type="button" onClick={() => setIsSystemPromptOpen(true)}>
                     <Braces size={22} strokeWidth={1.5} />
                   </button>
@@ -567,7 +655,7 @@ export default function Desktop_1() {
                   ) : (
                     <button
                       type="submit"
-                      disabled={!inputValue.trim()}
+                      disabled={!inputValue.trim() && attachments.length === 0}
                       className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-text-primary hover:text-accent disabled:opacity-50 disabled:hover:text-text-primary cursor-pointer"
                       aria-label="Send message"
                     >

@@ -216,7 +216,8 @@ export const useChatStore = create<ChatState>()(
             const updatedMessages = [...chat.messages, fullMsg];
             let newTitle = chat.title;
             if (chat.messages.length === 0 && message.role === 'user') {
-              newTitle = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
+              const raw = typeof message.content === 'string' ? message.content : message.content.map(b => b.type === 'text' ? b.text : '').join(' ').trim();
+              newTitle = raw.slice(0, 30) + (raw.length > 30 ? '...' : '');
             }
             return { ...chat, messages: updatedMessages, title: newTitle, activeLeafId: newId };
           }
@@ -230,7 +231,7 @@ export const useChatStore = create<ChatState>()(
           if (chat.id === chatId && chat.activeLeafId) {
             const messages = chat.messages.map((m) =>
               m.id === chat.activeLeafId
-                ? { ...m, content: m.content + chunk }
+                ? { ...m, content: typeof m.content === 'string' ? m.content + chunk : chunk }
                 : m
             );
             return { ...chat, messages };

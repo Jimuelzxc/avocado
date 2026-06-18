@@ -1,10 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+  | { type: 'pdf_text'; text: string; filename: string };
+
+export type MessageContent = string | ContentBlock[];
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
-  content: string;
+  content: MessageContent;
   parentId: string | null;
   createdAt: number;
 }
@@ -16,6 +23,12 @@ export interface Chat {
   activeLeafId: string | null;
   folderId: string | null;
   tagIds: string[];
+}
+
+export interface PromptPreset {
+  id: string;
+  name: string;
+  content: string;
 }
 
 export interface Settings {
@@ -34,6 +47,8 @@ interface ChatState {
   baseUrl: string;
   model: string;
   systemPrompt: string;
+  presets: PromptPreset[];
+  activePresetId: string | null;
   chats: Chat[];
   activeChatId: string | null;
   isStreaming: boolean;
@@ -45,9 +60,12 @@ interface ChatState {
   // Actions
   setSettings: (settings: Partial<Settings>) => void;
   setSettingsOpen: (isOpen: boolean) => void;
+  savePreset: (id: string | null, name: string, content: string) => string;
+  deletePreset: (id: string) => void;
+  loadPreset: (id: string) => void;
   createChat: () => string;
   deleteChat: (id: string) => void;
-  addMessage: (chatId: string, message: { role: Message['role']; content: string }, parentId?: string) => void;
+  addMessage: (chatId: string, message: { role: Message['role']; content: MessageContent }, parentId?: string) => void;
   updateLastMessage: (chatId: string, chunk: string) => void;
   replaceLastMessage: (chatId: string, content: string) => void;
   clearLastMessage: (chatId: string) => void;
@@ -105,21 +123,54 @@ function migrateChat(chat: { id: string; title: string; messages: any[] }): Chat
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       apiKey: '',
       baseUrl: 'https://openrouter.ai/api/v1',
       model: 'meta-llama/llama-3.2-3b-instruct',
       systemPrompt: '',
+      presets: [],
+      activePresetId: null,
       chats: [],
       activeChatId: null,
       isStreaming: false,
       isSettingsOpen: false,
-      theme: 'default',
+      theme: 'avocado',
       fontSize: 'medium',
       fontFamily: 'mono',
 
-      setSettings: (settings) => set((state) => ({ ...state, ...settings })),
+      setSettings: (settings) => set((state) => ({
+        ...state,
+        ...settings,
+        ...(settings.systemPrompt !== undefined ? { activePresetId: null } : {}),
+      })),
       setSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
+
+      savePreset: (id, name, content) => {
+        const presets = get().presets;
+        if (id) {
+          set({
+            presets: presets.map((p) => p.id === id ? { ...p, name, content } : p),
+          });
+          return id;
+        } else {
+          const newId = crypto.randomUUID();
+          set({
+            presets: [...presets, { id: newId, name, content }],
+          });
+          return newId;
+        }
+      },
+
+      deletePreset: (id) => {
+        set({ presets: get().presets.filter((p) => p.id !== id) });
+      },
+
+      loadPreset: (id) => {
+        const preset = get().presets.find((p) => p.id === id);
+        if (preset) {
+          set({ systemPrompt: preset.content, activePresetId: id });
+        }
+      },
 
       createChat: () => {
         const newId = crypto.randomUUID();
@@ -281,6 +332,8 @@ export const useChatStore = create<ChatState>()(
         baseUrl: state.baseUrl,
         model: state.model,
         systemPrompt: state.systemPrompt,
+        presets: state.presets,
+        activePresetId: state.activePresetId,
         chats: state.chats,
         activeChatId: state.activeChatId,
         theme: state.theme,
@@ -290,6 +343,14 @@ export const useChatStore = create<ChatState>()(
       migrate: (persisted: any) => {
         if (persisted?.chats?.length > 0 && persisted.chats[0]?.messages?.[0]?.id === undefined) {
           persisted.chats = persisted.chats.map(migrateChat);
+        }
+        // Migration v2: systemPrompt -> Default preset (only on first upgrade, not if user deleted all)
+        if (persisted?.systemPrompt?.trim() && persisted?.presets === undefined) {
+          persisted.presets = [{
+            id: crypto.randomUUID(),
+            name: 'Default',
+            content: persisted.systemPrompt,
+          }];
         }
         return persisted;
       },

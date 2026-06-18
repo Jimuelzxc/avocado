@@ -15,7 +15,7 @@ import { compressImage } from './lib/imageCompress';
 import { extractPdfText } from './lib/extractPdf';
 import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
 import { ContentBlock, MessageContent } from './store/chatStore';
-import { FileImage } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
 
 function VersionIndicator({
   siblings,
@@ -479,7 +479,7 @@ export default function Desktop_1() {
 
         {/* Messages list */}
         <div className="flex-1 overflow-y-auto p-4 md:p-10">
-          <div className="max-w-5xl mx-auto w-full flex flex-col gap-3 md:gap-8">
+          <div className="max-w-4xl mx-auto w-full flex flex-col gap-3 md:gap-8">
             {activePath.length === 0 ? (
               <div className="border border-border p-4 md:p-8 bg-surface text-center my-8 flex flex-col gap-4">
                 <h2 className="text-lg md:text-xl text-accent font-bold">avocado. SYSTEM V1.0</h2>
@@ -608,7 +608,7 @@ export default function Desktop_1() {
 
         {/* Form Input */}
         <div className="p-3 md:p-8 shrink-0 w-full">
-          <div className="max-w-5xl mx-auto w-full">
+          <div className="max-w-4xl mx-auto w-full">
             <form
               className="border border-border p-3 md:p-6 flex flex-col gap-3 md:gap-4 relative min-h-[100px] md:min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
               onSubmit={handleSendMessage}
@@ -635,7 +635,7 @@ export default function Desktop_1() {
               <div className=" flex justify-between items-center w-full">
                 <div className="text-text-primary flex items-center gap-2">
                   <button type="button" onClick={() => fileInputRef.current?.click()}>
-                    <FileImage size={22} strokeWidth={1.5} />
+                    <Paperclip size={22} strokeWidth={1.5} />
                   </button>
                   <button id="system-prompt" type="button" onClick={() => setIsSystemPromptOpen(true)}>
                     <Braces size={22} strokeWidth={1.5} />

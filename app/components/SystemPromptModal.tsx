@@ -38,21 +38,15 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
   };
 
   const handleSave = () => {
-    if (!selectedId) return;
     const trimmedName = name.trim() || 'Untitled';
     const trimmedContent = content.trim();
     if (!trimmedContent) return;
-    savePreset(selectedId, trimmedName, trimmedContent);
-  };
-
-  const handleSaveAsNew = () => {
-    const trimmedName = name.trim() || 'Untitled';
-    const trimmedContent = content.trim();
-    if (!trimmedContent) return;
-    savePreset(null, trimmedName, trimmedContent);
-    setSelectedId(null);
-    setName('');
-    setContent('');
+    if (selectedId) {
+      savePreset(selectedId, trimmedName, trimmedContent);
+    } else {
+      const newId = savePreset(null, trimmedName, trimmedContent);
+      setSelectedId(newId);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -100,9 +94,9 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
                   onClick={() => handleSelectPreset(p.id)}
                   className={`p-2 cursor-pointer text-sm border-b border-border/30 transition-colors ${
                     selectedId === p.id
-                      ? 'bg-accent/10 text-accent border-l-2 border-l-accent'
+                      ? 'bg-white/5 border-l-2 border-l-white/50 text-text-primary'
                       : activePresetId === p.id
-                        ? 'border-l-2 border-l-green-500/60'
+                        ? 'bg-green-500/10 border-l-2 border-l-green-500'
                         : 'hover:bg-surface-overlay'
                   }`}
                 >
@@ -110,12 +104,6 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
                 </div>
               ))}
             </div>
-            <button
-              onClick={handleNew}
-              className="border-t border-border p-2 text-xs text-accent hover:bg-surface-overlay cursor-pointer transition-colors text-left"
-            >
-              + NEW PRESET
-            </button>
           </div>
 
           {/* Right: Editor */}
@@ -138,21 +126,25 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
 
             <div className="flex gap-2 flex-wrap">
               <button
+                onClick={handleNew}
+                className="border border-border hover:bg-surface-overlay px-3 py-1.5 text-xs cursor-pointer transition-colors"
+              >
+                + NEW
+              </button>
+              <button
                 onClick={handleLoad}
                 disabled={!selectedId}
                 className="border border-accent text-accent hover:bg-accent/10 px-3 py-1.5 text-xs cursor-pointer transition-colors font-bold disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 LOAD
               </button>
-              {selectedId && (
-                <button
-                  onClick={handleSave}
-                  disabled={!content.trim()}
-                  className="border border-border hover:bg-surface-overlay px-3 py-1.5 text-xs cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  SAVE
-                </button>
-              )}
+              <button
+                onClick={handleSave}
+                disabled={!content.trim()}
+                className="border border-border hover:bg-surface-overlay px-3 py-1.5 text-xs cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                SAVE
+              </button>
               {selectedId && (
                 <button
                   onClick={() => handleDelete(selectedId)}
@@ -161,13 +153,6 @@ export function SystemPromptModal({ onClose }: SystemPromptModalProps) {
                   {confirmDelete === selectedId ? 'CONFIRM DELETE' : 'DELETE'}
                 </button>
               )}
-              <button
-                onClick={handleSaveAsNew}
-                disabled={!content.trim()}
-                className="border border-border hover:bg-surface-overlay px-3 py-1.5 text-xs cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                SAVE AS NEW
-              </button>
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@ import { compressImage } from './lib/imageCompress';
 import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
 import { ContentBlock, MessageContent } from './store/chatStore';
 import { Paperclip } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 function VersionIndicator({
   siblings,
@@ -395,13 +396,22 @@ export default function Desktop_1() {
           </button>
         </div>
 
-        {/* Action Button */}
-        <div className="px-5 pb-6 flex gap-2">
+        {/* Action Buttons */}
+        <div className="px-5 pb-6 flex flex-col gap-2">
           <button
             onClick={() => createChat()}
-            className="flex-1 border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+            className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
           >
             New Chat
+          </button>
+          <button
+            onClick={() => {
+              const win = window as any;
+              window.location.pathname = '/notes';
+            }}
+            className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+          >
+            Notes
           </button>
         </div>
 
@@ -716,12 +726,18 @@ export default function Desktop_1() {
                 </button>
               </div>
             </div>
-            <div className="px-5 pb-6 flex gap-2">
+            <div className="px-5 pb-6 flex flex-col gap-2">
               <button
                 onClick={() => { createChat(); setIsMobileSidebarOpen(false); }}
-                className="flex-1 border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
               >
                 New Chat
+              </button>
+              <button
+                onClick={() => { window.location.pathname = '/notes'; }}
+                className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+              >
+                Notes
               </button>
             </div>
             <div className="border-b border-border pb-2 mb-2 mx-3">

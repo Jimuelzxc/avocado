@@ -1,10 +1,17 @@
-const STORE_KEYS = [
-  'blues-chat-storage',
-  'blues-folder-storage',
-  'blues-tag-storage',
-  'avocado-notes',
-  'avocado-note-folders',
-] as const;
+interface StoreInfo {
+  arrayField: string;
+  label: string;
+}
+
+const STORE_META: Record<string, StoreInfo> = {
+  'blues-chat-storage': { arrayField: 'chats', label: 'Chats' },
+  'blues-folder-storage': { arrayField: 'folders', label: 'Chat Folders' },
+  'blues-tag-storage': { arrayField: 'tags', label: 'Tags' },
+  'avocado-notes': { arrayField: 'notes', label: 'Notes' },
+  'avocado-note-folders': { arrayField: 'folders', label: 'Note Folders' },
+};
+
+const STORE_KEYS = Object.keys(STORE_META);
 
 interface ExportData {
   version: number;
@@ -59,18 +66,19 @@ function validateImportData(data: unknown): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-function getArrayField(key: string, state: unknown): unknown[] | null {
+function getArrayField(key: string, state: unknown): unknown[] {
+  const info = STORE_META[key];
+  if (!info) return [];
   const s = state as Record<string, unknown>;
-  if (key === 'blues-chat-storage') return (s.chats as unknown[]) ?? null;
-  if (key === 'blues-folder-storage') return (s.folders as unknown[]) ?? null;
-  if (key === 'blues-tag-storage') return (s.tags as unknown[]) ?? null;
-  if (key === 'avocado-notes') return (s.notes as unknown[]) ?? null;
-  if (key === 'avocado-note-folders') return (s.folders as unknown[]) ?? null;
-  return null;
+  return (s[info.arrayField] as unknown[]) ?? [];
 }
 
 export function previewImport(file: File): Promise<ImportResult> {
   return new Promise((resolve) => {
+    if (file.size === 0) {
+      resolve({ success: false, error: 'File is empty' });
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -86,13 +94,7 @@ export function previewImport(file: File): Promise<ImportResult> {
           const store = d.stores[key];
           if (store) {
             const arr = getArrayField(key, store.state);
-            const count = arr ? arr.length : 1;
-            const label = key === 'blues-chat-storage' ? 'Chats'
-              : key === 'blues-folder-storage' ? 'Chat Folders'
-              : key === 'blues-tag-storage' ? 'Tags'
-              : key === 'avocado-notes' ? 'Notes'
-              : 'Note Folders';
-            preview.push({ key: label, count });
+            preview.push({ key: STORE_META[key].label, count: arr.length });
           }
         }
         resolve({ success: true, preview });
@@ -132,22 +134,15 @@ function mergeStoreState(
   key: string
 ): { state: Record<string, unknown>; version?: number } {
   const merged = { ...existing.state };
+  const info = STORE_META[key];
 
-  const arr = getArrayField(key, importedState);
-  if (arr) {
-    const existingArr = (merged[getArrayKey(key)] as unknown[]) ?? [];
-    const existingIds = new Set(existingArr.map((i: any) => i.id).filter(Boolean));
-    const newItems = arr.filter((i: any) => i.id && !existingIds.has(i.id));
-    merged[getArrayKey(key)] = [...existingArr, ...newItems];
+  const importedArr = getArrayField(key, importedState);
+  if (importedArr.length > 0 && info) {
+    const existingArr = (merged[info.arrayField] as { id: string }[]) ?? [];
+    const existingIds = new Set(existingArr.map((i) => i.id).filter(Boolean));
+    const newItems = importedArr.filter((i): i is { id: string; [k: string]: unknown } => !!(i as { id?: string }).id && !existingIds.has((i as { id: string }).id));
+    merged[info.arrayField] = [...existingArr, ...newItems];
   }
 
   return { ...existing, state: merged };
-}
-
-function getArrayKey(key: string): string {
-  if (key === 'blues-chat-storage') return 'chats';
-  if (key === 'blues-folder-storage') return 'folders';
-  if (key === 'blues-tag-storage') return 'tags';
-  if (key === 'avocado-notes') return 'notes';
-  return 'folders';
 }

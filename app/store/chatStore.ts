@@ -31,6 +31,14 @@ export interface PromptPreset {
   content: string;
 }
 
+export interface SlashCommand {
+  id: string;
+  name: string;
+  shortcut: string;
+  content: string;
+  builtIn: boolean;
+}
+
 export interface Settings {
   apiKey: string;
   baseUrl: string;
@@ -56,6 +64,7 @@ interface ChatState {
   theme: Theme;
   fontSize: FontSize;
   fontFamily: FontFamily;
+  slashCommands: SlashCommand[];
 
   // Actions
   setSettings: (settings: Partial<Settings>) => void;
@@ -75,6 +84,8 @@ interface ChatState {
   setTheme: (theme: Theme) => void;
   setFontSize: (fontSize: FontSize) => void;
   setFontFamily: (fontFamily: FontFamily) => void;
+  initSlashCommands: () => void;
+  syncSlashFromPresets: () => void;
 }
 
 export function getActivePath(messages: Message[], leafId: string | null): Message[] {
@@ -137,6 +148,7 @@ export const useChatStore = create<ChatState>()(
       theme: 'avocado',
       fontSize: 'medium',
       fontFamily: 'mono',
+      slashCommands: [],
 
       setSettings: (settings) => set((state) => ({
         ...state,
@@ -151,18 +163,21 @@ export const useChatStore = create<ChatState>()(
           set({
             presets: presets.map((p) => p.id === id ? { ...p, name, content } : p),
           });
+          get().syncSlashFromPresets();
           return id;
         } else {
           const newId = crypto.randomUUID();
           set({
             presets: [...presets, { id: newId, name, content }],
           });
+          get().syncSlashFromPresets();
           return newId;
         }
       },
 
       deletePreset: (id) => {
         set({ presets: get().presets.filter((p) => p.id !== id) });
+        get().syncSlashFromPresets();
       },
 
       loadPreset: (id) => {
@@ -325,6 +340,42 @@ export const useChatStore = create<ChatState>()(
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
+
+      initSlashCommands: () => {
+        const existing = get().slashCommands;
+        if (existing.length > 0) return;
+
+        const builtins: SlashCommand[] = [
+          { id: 'builtin-help', name: 'Help', shortcut: 'help', content: 'Available commands: /help, /clear, /summarize, /explain', builtIn: true },
+          { id: 'builtin-clear', name: 'Clear Chat', shortcut: 'clear', content: '', builtIn: true },
+          { id: 'builtin-summarize', name: 'Summarize', shortcut: 'summarize', content: 'Summarize the following in 3 bullet points:', builtIn: true },
+          { id: 'builtin-explain', name: 'Explain Simply', shortcut: 'explain', content: "Explain this like I'm 5:", builtIn: true },
+        ];
+
+        const presets = get().presets;
+        const fromPresets: SlashCommand[] = presets.map(p => ({
+          id: `preset-${p.id}`,
+          name: p.name,
+          shortcut: p.name.toLowerCase().replace(/\s+/g, '-'),
+          content: p.content,
+          builtIn: false,
+        }));
+
+        set({ slashCommands: [...builtins, ...fromPresets] });
+      },
+
+      syncSlashFromPresets: () => {
+        const builtins = get().slashCommands.filter(s => s.builtIn);
+        const presets = get().presets;
+        const fromPresets: SlashCommand[] = presets.map(p => ({
+          id: `preset-${p.id}`,
+          name: p.name,
+          shortcut: p.name.toLowerCase().replace(/\s+/g, '-'),
+          content: p.content,
+          builtIn: false,
+        }));
+        set({ slashCommands: [...builtins, ...fromPresets] });
+      },
     }),
     {
       name: 'blues-chat-storage',
@@ -340,6 +391,7 @@ export const useChatStore = create<ChatState>()(
         theme: state.theme,
         fontSize: state.fontSize,
         fontFamily: state.fontFamily,
+        slashCommands: state.slashCommands,
       }),
       migrate: (persisted: any) => {
         if (persisted?.chats?.length > 0 && persisted.chats[0]?.messages?.[0]?.id === undefined) {

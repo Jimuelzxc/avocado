@@ -2,9 +2,10 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
 import { useNotesStore } from '../store/notesStore';
 import { NotesSidebar } from '../components/NotesSidebar';
-import { MarkdownRenderer } from '../components/MarkdownRenderer';
 
 export default function NotesPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function NotesPage() {
   const activeNote = notes.find((n) => n.id === activeNoteId);
 
   return (
-    <div className="flex h-screen w-full bg-surface text-text-primary overflow-hidden font-mono selection:bg-[var(--selection)]">
+    <div className="flex h-screen w-full bg-surface text-text-primary overflow-hidden selection:bg-[var(--selection)]">
       <NotesSidebar />
       <div className="flex-1 flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
@@ -46,20 +47,15 @@ export default function NotesPage() {
           </button>
         </div>
         {activeNote ? (
-          <div className="flex-1 flex divide-x divide-border overflow-hidden">
-            <textarea
-              className="w-1/2 h-full bg-transparent border-none outline-none resize-none text-sm p-4 font-mono leading-relaxed placeholder:text-text-secondary/40"
-              placeholder="Write your note in markdown..."
+          <div className="flex-1 overflow-y-auto p-4" data-color-mode="dark">
+            <MDEditor
               value={activeNote.content}
-              onChange={(e) => updateNote(activeNote.id, e.target.value)}
+              onChange={(val) => updateNote(activeNote.id, val || '')}
+              preview="live"
+              height="100%"
+              hideToolbar
+              visibleDragbar={false}
             />
-            <div className="w-1/2 h-full overflow-y-auto p-4 text-sm leading-relaxed">
-              {activeNote.content.trim() ? (
-                <MarkdownRenderer content={activeNote.content} />
-              ) : (
-                <p className="text-text-secondary/40">Write something...</p>
-              )}
-            </div>
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-text-secondary/40">

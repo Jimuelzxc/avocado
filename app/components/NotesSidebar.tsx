@@ -1,20 +1,174 @@
 'use client';
-import React from 'react';
-import { Plus, Trash2, FileText, X } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Plus, Trash2, FileText, Folder as FolderIcon, FolderOpen,
+  ChevronRight, ChevronDown, Pencil, MoreHorizontal,
+} from 'lucide-react';
 import { useNotesStore, Note } from '../store/notesStore';
+import { useNoteFolderStore, NoteFolder } from '../store/noteFolderStore';
 
-function formatDate(ts: number): string {
-  const d = new Date(ts);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+function FolderItem({
+  folder,
+  folders,
+  notes,
+  activeNoteId,
+  depth,
+  onSelectNote,
+  onDeleteNote,
+}: {
+  folder: NoteFolder;
+  folders: NoteFolder[];
+  notes: Note[];
+  activeNoteId: string | null;
+  depth: number;
+  onSelectNote: (id: string) => void;
+  onDeleteNote: (id: string) => void;
+}) {
+  const { renameFolder, deleteFolder, createFolder } = useNoteFolderStore();
+  const createNoteInFolder = useNotesStore((s) => s.createNote);
+  const setActiveNote = useNotesStore((s) => s.setActiveNote);
+  const [expanded, setExpanded] = useState(true);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(folder.name);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const children = folders.filter((f) => f.parentId === folder.id);
+  const folderNotes = notes.filter((n) => n.folderId === folder.id);
+  const hasItems = children.length > 0 || folderNotes.length > 0;
+
+  const handleRename = () => {
+    if (renameValue.trim()) renameFolder(folder.id, renameValue.trim());
+    setRenaming(false);
+  };
+
+  return (
+    <div>
+      <div
+        className="group flex items-center gap-1 px-2 py-1.5 text-sm cursor-pointer transition-colors hover:bg-surface-overlay"
+        style={{ paddingLeft: `${8 + depth * 16}px` }}
+      >
+        {hasItems ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="p-0.5 hover:text-accent transition-colors cursor-pointer"
+          >
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+        ) : (
+          <span className="w-5" />
+        )}
+        {expanded ? <FolderOpen size={14} className="shrink-0" /> : <FolderIcon size={14} className="shrink-0" />}
+        {renaming ? (
+          <input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={handleRename}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenaming(false); }}
+            className="flex-1 bg-transparent border border-accent outline-none px-1 text-sm"
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="flex-1 truncate">{folder.name}</span>
+        )}
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-accent transition-all cursor-pointer"
+          >
+            <MoreHorizontal size={14} />
+          </button>
+          {showMenu && (
+            <div
+              className="absolute right-0 top-6 bg-surface border border-border shadow-lg z-50 text-sm min-w-32"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => { setRenaming(true); setRenameValue(folder.name); setShowMenu(false); }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-surface-overlay transition-colors cursor-pointer text-left"
+              >
+                <Pencil size={14} /> Rename
+              </button>
+              <button
+                onClick={() => { createFolder('New Folder', folder.id); setShowMenu(false); }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-surface-overlay transition-colors cursor-pointer text-left"
+              >
+                <Plus size={14} /> Subfolder
+              </button>
+              <button
+                onClick={() => {
+                  const id = createNoteInFolder(folder.id);
+                  setActiveNote(id);
+                  setExpanded(true);
+                  setShowMenu(false);
+                }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-surface-overlay transition-colors cursor-pointer text-left"
+              >
+                <FileText size={14} /> New Note
+              </button>
+              <button
+                onClick={() => { deleteFolder(folder.id); setShowMenu(false); }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-surface-overlay transition-colors cursor-pointer text-left text-red-400"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {expanded && (
+        <>
+          {children.map((child) => (
+            <FolderItem
+              key={child.id}
+              folder={child}
+              folders={folders}
+              notes={notes}
+              activeNoteId={activeNoteId}
+              depth={depth + 1}
+              onSelectNote={onSelectNote}
+              onDeleteNote={onDeleteNote}
+            />
+          ))}
+          {folderNotes.map((note) => (
+            <NoteItem
+              key={note.id}
+              note={note}
+              isActive={note.id === activeNoteId}
+              depth={depth + 1}
+              onSelect={() => onSelectNote(note.id)}
+              onDelete={() => onDeleteNote(note.id)}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
 }
 
-function getPreview(content: string): string {
-  const lines = content.split('\n').filter(l => l.trim());
-  for (const line of lines) {
-    const stripped = line.replace(/^#+\s*/, '').replace(/[*_~`]/g, '').trim();
-    if (stripped) return stripped;
-  }
-  return 'Empty note';
+function NoteItem({
+  note, isActive, depth, onSelect, onDelete,
+}: {
+  note: Note; isActive: boolean; depth: number; onSelect: () => void; onDelete: () => void;
+}) {
+  return (
+    <div
+      className={`group flex items-center gap-1 px-2 py-1 cursor-pointer transition-colors ${
+        isActive ? 'bg-surface-overlay text-accent' : 'hover:bg-surface-overlay'
+      }`}
+      style={{ paddingLeft: `${8 + depth * 16}px` }}
+      onClick={onSelect}
+    >
+      <FileText size={14} className="shrink-0 text-text-secondary" />
+      <span className="text-sm truncate flex-1">{note.title}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="opacity-0 group-hover:opacity-100 hover:text-red-400 cursor-pointer p-0.5 transition-opacity shrink-0"
+      >
+        <Trash2 size={12} />
+      </button>
+    </div>
+  );
 }
 
 export function NotesSidebar({ onClose }: { onClose?: () => void }) {
@@ -22,25 +176,26 @@ export function NotesSidebar({ onClose }: { onClose?: () => void }) {
   const activeNoteId = useNotesStore((s) => s.activeNoteId);
   const setActiveNote = useNotesStore((s) => s.setActiveNote);
   const deleteNote = useNotesStore((s) => s.deleteNote);
+  const createNote = useNotesStore((s) => s.createNote);
+  const { folders, createFolder } = useNoteFolderStore();
+  const [unfiledExpanded, setUnfiledExpanded] = useState(true);
 
-  const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+  const rootFolders = folders.filter((f) => f.parentId === null);
+  const unfiledNotes = notes.filter((n) => !n.folderId);
+  const sortedNotes = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
 
   return (
     <div className="w-64 border-r border-border h-full flex flex-col bg-surface overflow-hidden">
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
         <h2 className="text-accent text-sm tracking-wide">Notes</h2>
         <div className="flex items-center gap-1">
           {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1 hover:text-accent transition-colors cursor-pointer md:hidden"
-              aria-label="Close notes list"
-            >
-              <X size={16} />
+            <button onClick={onClose} className="p-1 hover:text-accent transition-colors cursor-pointer md:hidden" aria-label="Close notes list">
+              <ChevronRight size={16} />
             </button>
           )}
           <button
-            onClick={() => useNotesStore.getState().createNote()}
+            onClick={() => createNote()}
             className="p-1 hover:text-accent transition-colors cursor-pointer"
             aria-label="New note"
           >
@@ -49,59 +204,56 @@ export function NotesSidebar({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {sorted.length === 0 ? (
+        <div className="py-2">
+          {rootFolders.map((folder) => (
+            <FolderItem
+              key={folder.id}
+              folder={folder}
+              folders={folders}
+              notes={sortedNotes}
+              activeNoteId={activeNoteId}
+              depth={0}
+              onSelectNote={setActiveNote}
+              onDeleteNote={deleteNote}
+            />
+          ))}
+          <button
+            onClick={() => createFolder('New Folder')}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:text-accent hover:bg-surface-overlay transition-colors cursor-pointer w-full"
+          >
+            <Plus size={14} />
+            <span>New Folder</span>
+          </button>
+        </div>
+        {unfiledNotes.length > 0 && (
+          <div className="border-t border-border/50 pt-1">
+            <div
+              className="flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer hover:bg-surface-overlay transition-colors select-none"
+              onClick={() => setUnfiledExpanded(!unfiledExpanded)}
+            >
+              {unfiledExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <FileText size={14} className="shrink-0 text-text-secondary" />
+              <span className="flex-1 text-text-secondary">Unfiled</span>
+              <span className="text-xs text-text-secondary/60">{unfiledNotes.length}</span>
+            </div>
+            {unfiledExpanded && unfiledNotes.map((note) => (
+              <NoteItem
+                key={note.id}
+                note={note}
+                isActive={note.id === activeNoteId}
+                depth={1}
+                onSelect={() => setActiveNote(note.id)}
+                onDelete={() => deleteNote(note.id)}
+              />
+            ))}
+          </div>
+        )}
+        {notes.length === 0 && (
           <div className="p-4 text-sm text-text-secondary text-center">
             No notes yet. Click + to create one.
           </div>
-        ) : (
-          sorted.map((note) => (
-            <NoteItem
-              key={note.id}
-              note={note}
-              isActive={note.id === activeNoteId}
-              onSelect={() => setActiveNote(note.id)}
-              onDelete={() => deleteNote(note.id)}
-            />
-          ))
         )}
       </div>
-    </div>
-  );
-}
-
-function NoteItem({
-  note,
-  isActive,
-  onSelect,
-  onDelete,
-}: {
-  note: Note;
-  isActive: boolean;
-  onSelect: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div
-      className={`group flex flex-col p-3 border-b border-border/50 cursor-pointer transition-colors ${
-        isActive ? 'bg-surface-overlay border-l-2 border-l-accent' : 'hover:bg-surface-overlay'
-      }`}
-      onClick={onSelect}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <FileText size={14} className="shrink-0 text-text-secondary" />
-          <span className="text-sm truncate">{note.title}</span>
-        </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="opacity-0 group-hover:opacity-100 hover:text-red-400 cursor-pointer p-1 transition-opacity shrink-0"
-          aria-label="Delete note"
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
-      <p className="text-xs text-text-secondary truncate mt-0.5">{getPreview(note.content)}</p>
-      <span className="text-[10px] text-text-secondary/60 mt-0.5">{formatDate(note.updatedAt)}</span>
     </div>
   );
 }

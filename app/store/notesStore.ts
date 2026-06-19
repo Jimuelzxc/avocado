@@ -5,6 +5,7 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  folderId: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -20,10 +21,11 @@ function extractTitle(content: string): string {
 interface NotesState {
   notes: Note[];
   activeNoteId: string | null;
-  createNote: () => string;
+  createNote: (folderId?: string) => string;
   updateNote: (id: string, content: string) => void;
   deleteNote: (id: string) => void;
   setActiveNote: (id: string | null) => void;
+  moveNoteToFolder: (noteId: string, folderId: string | null) => void;
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -31,15 +33,12 @@ export const useNotesStore = create<NotesState>()(
     (set) => ({
       notes: [],
       activeNoteId: null,
-      createNote: () => {
+      createNote: (folderId?: string) => {
         const id = crypto.randomUUID();
         const now = Date.now();
         const note: Note = {
-          id,
-          title: 'Untitled',
-          content: '',
-          createdAt: now,
-          updatedAt: now,
+          id, folderId: folderId ?? null, title: 'Untitled', content: '',
+          createdAt: now, updatedAt: now,
         };
         set((state) => ({ notes: [note, ...state.notes], activeNoteId: id }));
         return id;
@@ -60,6 +59,13 @@ export const useNotesStore = create<NotesState>()(
         }));
       },
       setActiveNote: (id) => set({ activeNoteId: id }),
+
+      moveNoteToFolder: (noteId, folderId) =>
+        set((state) => ({
+          notes: state.notes.map((n) =>
+            n.id === noteId ? { ...n, folderId } : n
+          ),
+        })),
     }),
     { name: 'avocado-notes' }
   )

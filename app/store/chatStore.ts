@@ -132,6 +132,16 @@ function migrateChat(chat: { id: string; title: string; messages: any[] }): Chat
   };
 }
 
+function presetsToSlashCommands(presets: PromptPreset[]): SlashCommand[] {
+  return presets.map(p => ({
+    id: `preset-${p.id}`,
+    name: p.name,
+    shortcut: p.name.toLowerCase().replace(/\s+/g, '-'),
+    content: p.content,
+    builtIn: false,
+  }));
+}
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
@@ -352,28 +362,14 @@ export const useChatStore = create<ChatState>()(
           { id: 'builtin-explain', name: 'Explain Simply', shortcut: 'explain', content: "Explain this like I'm 5:", builtIn: true },
         ];
 
-        const presets = get().presets;
-        const fromPresets: SlashCommand[] = presets.map(p => ({
-          id: `preset-${p.id}`,
-          name: p.name,
-          shortcut: p.name.toLowerCase().replace(/\s+/g, '-'),
-          content: p.content,
-          builtIn: false,
-        }));
+        const fromPresets = presetsToSlashCommands(get().presets);
 
         set({ slashCommands: [...builtins, ...fromPresets] });
       },
 
       syncSlashFromPresets: () => {
         const builtins = get().slashCommands.filter(s => s.builtIn);
-        const presets = get().presets;
-        const fromPresets: SlashCommand[] = presets.map(p => ({
-          id: `preset-${p.id}`,
-          name: p.name,
-          shortcut: p.name.toLowerCase().replace(/\s+/g, '-'),
-          content: p.content,
-          builtIn: false,
-        }));
+        const fromPresets = presetsToSlashCommands(get().presets);
         set({ slashCommands: [...builtins, ...fromPresets] });
       },
     }),

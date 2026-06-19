@@ -21,6 +21,7 @@ export default function NotesPage() {
     } else if (!activeNoteId) {
       setActiveNote(notes[0].id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activeNote = notes.find((n) => n.id === activeNoteId);
@@ -38,10 +39,7 @@ export default function NotesPage() {
             Back to Chat
           </button>
           <button
-            onClick={() => {
-              const id = createNote();
-              setActiveNote(id);
-            }}
+            onClick={() => createNote()}
             className="border border-border px-3 py-1 text-sm hover:bg-surface-overlay transition-colors cursor-pointer"
           >
             + New Note

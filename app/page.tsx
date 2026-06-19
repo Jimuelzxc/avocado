@@ -15,7 +15,7 @@ import { compressImage } from './lib/imageCompress';
 import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
 import { ContentBlock, MessageContent } from './store/chatStore';
 import { Paperclip } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+
 
 function VersionIndicator({
   siblings,
@@ -405,10 +405,7 @@ export default function Desktop_1() {
             New Chat
           </button>
           <button
-            onClick={() => {
-              const win = window as any;
-              window.location.pathname = '/notes';
-            }}
+            onClick={() => { window.location.pathname = '/notes'; }}
             className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
           >
             Notes

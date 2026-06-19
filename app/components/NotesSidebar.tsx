@@ -31,6 +31,7 @@ function FolderItem({
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
   const [showMenu, setShowMenu] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const children = folders.filter((f) => f.parentId === folder.id);
   const folderNotes = notes.filter((n) => n.folderId === folder.id);
@@ -41,11 +42,31 @@ function FolderItem({
     setRenaming(false);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => setDragOver(false);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const noteId = e.dataTransfer.getData('text/note-id');
+    if (noteId) useNotesStore.getState().moveNoteToFolder(noteId, folder.id);
+  };
+
   return (
     <div>
       <div
-        className="group flex items-center gap-1 px-2 py-1.5 text-sm cursor-pointer transition-colors hover:bg-surface-overlay"
+        className={`group flex items-center gap-1 px-2 py-1.5 text-sm cursor-pointer transition-colors ${
+          dragOver ? 'bg-accent/10 ring-1 ring-accent' : 'hover:bg-surface-overlay'
+        }`}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {hasItems ? (
           <button
@@ -151,8 +172,15 @@ function NoteItem({
 }: {
   note: Note; isActive: boolean; depth: number; onSelect: () => void; onDelete: () => void;
 }) {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/note-id', note.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
     <div
+      draggable
+      onDragStart={handleDragStart}
       className={`group flex items-center gap-1 px-2 py-1 cursor-pointer transition-colors ${
         isActive ? 'bg-surface-overlay text-accent' : 'hover:bg-surface-overlay'
       }`}
@@ -179,10 +207,26 @@ export function NotesSidebar({ onClose }: { onClose?: () => void }) {
   const createNote = useNotesStore((s) => s.createNote);
   const { folders, createFolder } = useNoteFolderStore();
   const [unfiledExpanded, setUnfiledExpanded] = useState(true);
+  const [unfiledDragOver, setUnfiledDragOver] = useState(false);
 
   const rootFolders = folders.filter((f) => f.parentId === null);
   const unfiledNotes = notes.filter((n) => !n.folderId);
   const sortedNotes = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+
+  const handleUnfiledDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setUnfiledDragOver(true);
+  };
+
+  const handleUnfiledDragLeave = () => setUnfiledDragOver(false);
+
+  const handleUnfiledDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setUnfiledDragOver(false);
+    const noteId = e.dataTransfer.getData('text/note-id');
+    if (noteId) useNotesStore.getState().moveNoteToFolder(noteId, null);
+  };
 
   return (
     <div className="w-64 border-r border-border h-full flex flex-col bg-surface overflow-hidden">
@@ -228,8 +272,13 @@ export function NotesSidebar({ onClose }: { onClose?: () => void }) {
         {unfiledNotes.length > 0 && (
           <div className="border-t border-border/50 pt-1">
             <div
-              className="flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer hover:bg-surface-overlay transition-colors select-none"
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer hover:bg-surface-overlay transition-colors select-none ${
+                unfiledDragOver ? 'bg-accent/10 ring-1 ring-accent' : ''
+              }`}
               onClick={() => setUnfiledExpanded(!unfiledExpanded)}
+              onDragOver={handleUnfiledDragOver}
+              onDragLeave={handleUnfiledDragLeave}
+              onDrop={handleUnfiledDrop}
             >
               {unfiledExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               <FileText size={14} className="shrink-0 text-text-secondary" />

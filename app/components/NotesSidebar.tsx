@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Plus, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2, FileText, X } from 'lucide-react';
 import { useNotesStore, Note } from '../store/notesStore';
 
 function formatDate(ts: number): string {
@@ -17,7 +17,7 @@ function getPreview(content: string): string {
   return 'Empty note';
 }
 
-export function NotesSidebar() {
+export function NotesSidebar({ onClose }: { onClose?: () => void }) {
   const notes = useNotesStore((s) => s.notes);
   const activeNoteId = useNotesStore((s) => s.activeNoteId);
   const setActiveNote = useNotesStore((s) => s.setActiveNote);
@@ -29,13 +29,24 @@ export function NotesSidebar() {
     <div className="w-64 border-r border-border h-full flex flex-col bg-surface overflow-hidden">
       <div className="p-4 border-b border-border flex items-center justify-between">
         <h2 className="text-accent text-sm tracking-wide">Notes</h2>
-        <button
-          onClick={() => useNotesStore.getState().createNote()}
-          className="p-1 hover:text-accent transition-colors cursor-pointer"
-          aria-label="New note"
-        >
-          <Plus size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1 hover:text-accent transition-colors cursor-pointer md:hidden"
+              aria-label="Close notes list"
+            >
+              <X size={16} />
+            </button>
+          )}
+          <button
+            onClick={() => useNotesStore.getState().createNote()}
+            className="p-1 hover:text-accent transition-colors cursor-pointer"
+            aria-label="New note"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {sorted.length === 0 ? (

@@ -172,6 +172,9 @@ function NoteItem({
 }: {
   note: Note; isActive: boolean; depth: number; onSelect: () => void; onDelete: () => void;
 }) {
+  const folders = useNoteFolderStore((s) => s.folders);
+  const [showMenu, setShowMenu] = useState(false);
+
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/note-id', note.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -191,10 +194,43 @@ function NoteItem({
       <span className="text-sm truncate flex-1">{note.title}</span>
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="opacity-0 group-hover:opacity-100 hover:text-red-400 cursor-pointer p-0.5 transition-opacity shrink-0"
+        className="opacity-0 group-hover:opacity-100 hover:text-red-400 cursor-pointer p-0.5 transition-opacity shrink-0 max-md:opacity-100"
       >
         <Trash2 size={12} />
       </button>
+      <div className="relative">
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+          className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-accent transition-all cursor-pointer max-md:opacity-100"
+        >
+          <MoreHorizontal size={12} />
+        </button>
+        {showMenu && (
+          <div
+            className="absolute right-0 top-5 bg-surface border border-border shadow-lg z-50 text-sm min-w-40"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-3 py-1.5 text-xs text-text-secondary border-b border-border/50">Move to folder</div>
+            {folders.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => { useNotesStore.getState().moveNoteToFolder(note.id, f.id); setShowMenu(false); }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-surface-overlay transition-colors cursor-pointer text-left"
+              >
+                <FolderIcon size={14} />
+                <span className="truncate">{f.name}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => { useNotesStore.getState().moveNoteToFolder(note.id, null); setShowMenu(false); }}
+              className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-surface-overlay transition-colors cursor-pointer text-left border-t border-border/50"
+            >
+              <FileText size={14} />
+              <span>Unfiled</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

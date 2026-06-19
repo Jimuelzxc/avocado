@@ -15,6 +15,8 @@ import { compressImage } from './lib/imageCompress';
 import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
 import { ContentBlock, MessageContent } from './store/chatStore';
 import { Paperclip } from 'lucide-react';
+import { SlashCommandMenu } from './components/SlashCommandMenu';
+import type { SlashCommand } from './store/chatStore';
 
 
 function VersionIndicator({
@@ -76,9 +78,14 @@ export default function Desktop_1() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashFilter, setSlashFilter] = useState('');
+  const [slashIndex, setSlashIndex] = useState(0);
 
   const { folders, activeFolderId } = useFolderStore();
   const { tags, activeTagIds } = useTagStore();
+  const slashCommands = useChatStore(s => s.slashCommands);
 
   const filteredChats = chats.filter((chat) => {
     if (activeFolderId !== null) {
@@ -99,6 +106,10 @@ export default function Desktop_1() {
     }
     return true;
   });
+
+  const filteredSlashCommands = slashOpen
+    ? slashCommands.filter(cmd => !slashFilter || cmd.shortcut.toLowerCase().includes(slashFilter.toLowerCase()) || cmd.name.toLowerCase().includes(slashFilter.toLowerCase()))
+    : [];
 
   // Prevent hydration errors by waiting for client-side mount
   useEffect(() => {
@@ -127,8 +138,11 @@ export default function Desktop_1() {
 
   // Handle initial state setup
   useEffect(() => {
-    if (mounted && chats.length === 0) {
-      createChat();
+    if (mounted) {
+      useChatStore.getState().initSlashCommands();
+      if (chats.length === 0) {
+        createChat();
+      }
     }
   }, [mounted, chats.length, createChat]);
 
@@ -367,6 +381,36 @@ export default function Desktop_1() {
   const handleSwitchVersion = (targetMsgId: string) => {
     if (!activeChatId) return;
     useChatStore.getState().switchVersion(activeChatId, targetMsgId);
+  };
+
+  const handleSlashSelect = (cmd: SlashCommand) => {
+    if (cmd.shortcut === 'clear') {
+      if (activeChatId && window.confirm('Clear this chat?')) {
+        deleteChat(activeChatId);
+        createChat();
+        setInputValue('');
+      }
+      setSlashOpen(false);
+      return;
+    }
+
+    const cursorPos = textareaRef.current?.selectionStart ?? inputValue.length;
+    const textBefore = inputValue.slice(0, cursorPos);
+    const textAfter = inputValue.slice(cursorPos);
+    const lastSlashIdx = textBefore.lastIndexOf('/');
+    if (lastSlashIdx === -1) return;
+    const newValue = textBefore.slice(0, lastSlashIdx) + cmd.content + textAfter;
+    setInputValue(newValue);
+    setSlashOpen(false);
+
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (ta) {
+        const pos = lastSlashIdx + cmd.content.length;
+        ta.setSelectionRange(pos, pos);
+        ta.focus();
+      }
+    });
   };
 
   // Hydration wrapper to avoid mismatch
@@ -626,13 +670,56 @@ export default function Desktop_1() {
             >
               <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleFileSelect} />
               <textarea
+                ref={textareaRef}
                 className="w-full bg-transparent border-none outline-none resize-none text-base placeholder:text-text-secondary min-h-[60px] font-mono"
-                placeholder="Ask a question..."
+                placeholder="Ask a question...  Type / for commands"
                 rows={2}
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setInputValue(val);
+
+                  const cursorPos = e.target.selectionStart;
+                  const textBeforeCursor = val.slice(0, cursorPos);
+                  const lastWord = textBeforeCursor.split(/\s/).pop() || '';
+
+                  if (lastWord.startsWith('/') && lastWord.length > 1) {
+                    setSlashFilter(lastWord.slice(1));
+                    setSlashOpen(true);
+                    setSlashIndex(0);
+                  } else if (lastWord === '/') {
+                    setSlashFilter('');
+                    setSlashOpen(true);
+                    setSlashIndex(0);
+                  } else {
+                    setSlashOpen(false);
+                  }
+                }}
                 disabled={isStreaming}
                 onKeyDown={(e) => {
+                  if (slashOpen) {
+                    const list = filteredSlashCommands;
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (list.length > 0) setSlashIndex(i => Math.min(i + 1, list.length - 1));
+                      return;
+                    }
+                    if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSlashIndex(i => Math.max(i - 1, 0));
+                      return;
+                    }
+                    if (e.key === 'Enter' && list[slashIndex]) {
+                      e.preventDefault();
+                      handleSlashSelect(list[slashIndex]);
+                      return;
+                    }
+                    if (e.key === 'Escape') {
+                      setSlashOpen(false);
+                      return;
+                    }
+                  }
+
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSendMessage(e);
@@ -673,6 +760,15 @@ export default function Desktop_1() {
                 </div>
 
               </div>
+              {slashOpen && (
+                <SlashCommandMenu
+                  commands={filteredSlashCommands}
+                  filter={slashFilter}
+                  selectedIndex={slashIndex}
+                  onSelect={handleSlashSelect}
+                  onClose={() => setSlashOpen(false)}
+                />
+              )}
             </form>
           </div>
         </div>

@@ -13,16 +13,18 @@ interface SlashCommandMenuProps {
 
 export function SlashCommandMenu({ commands, filter, selectedIndex, onSelect, onClose }: SlashCommandMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [onClose]);
+  }, []);
 
   if (commands.length === 0) return null;
 

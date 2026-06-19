@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
-import '@uiw/react-md-editor/markdown-editor.css';
 import { useNotesStore } from '../store/notesStore';
 import { NotesSidebar } from '../components/NotesSidebar';
 
@@ -22,15 +21,14 @@ export default function NotesPage() {
     } else if (!activeNoteId) {
       setActiveNote(notes[0].id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activeNote = notes.find((n) => n.id === activeNoteId);
 
   return (
-    <div className="flex h-screen w-full bg-surface text-text-primary overflow-hidden selection:bg-[var(--selection)]">
+    <div className="flex h-screen w-full bg-surface text-text-primary overflow-hidden font-mono selection:bg-[var(--selection)]">
       <NotesSidebar />
-      <div className="flex-1 flex flex-col h-full">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <button
             onClick={() => router.push('/')}
@@ -47,13 +45,11 @@ export default function NotesPage() {
           </button>
         </div>
         {activeNote ? (
-          <div className="flex-1 overflow-y-auto p-4" data-color-mode="dark">
+          <div className="flex-1 overflow-hidden p-4" data-color-mode="dark">
             <MDEditor
               value={activeNote.content}
-              onChange={(val) => updateNote(activeNote.id, val || '')}
-              preview="live"
+              onChange={(val) => updateNote(activeNote.id, val ?? '')}
               height="100%"
-              hideToolbar
               visibleDragbar={false}
             />
           </div>

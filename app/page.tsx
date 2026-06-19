@@ -16,6 +16,7 @@ import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
 import { ContentBlock, MessageContent } from './store/chatStore';
 import { Paperclip } from 'lucide-react';
 import { SlashCommandMenu } from './components/SlashCommandMenu';
+import { SlashCommandModal } from './components/SlashCommandModal';
 import type { SlashCommand } from './store/chatStore';
 
 
@@ -70,6 +71,7 @@ export default function Desktop_1() {
   const [inputValue, setInputValue] = useState('');
   const [mounted, setMounted] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
+  const [isSlashCommandOpen, setIsSlashCommandOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -732,6 +734,9 @@ export default function Desktop_1() {
                   <button type="button" onClick={() => fileInputRef.current?.click()}>
                     <Paperclip size={22} strokeWidth={1.5} />
                   </button>
+                  <button type="button" onClick={() => setIsSlashCommandOpen(true)}>
+                    <span className="text-lg font-bold leading-none">/</span>
+                  </button>
                   <button id="system-prompt" type="button" onClick={() => setIsSystemPromptOpen(true)}>
                     <Braces size={22} strokeWidth={1.5} />
                   </button>
@@ -890,6 +895,9 @@ export default function Desktop_1() {
 
       {/* Settings Modal */}
       {isSettingsOpen && <SettingsModal />}
+
+      {/* Slash Command Modal */}
+      {isSlashCommandOpen && <SlashCommandModal onClose={() => setIsSlashCommandOpen(false)} />}
 
       {/* System Prompt Modal */}
       {isSystemPromptOpen && <SystemPromptModal onClose={() => setIsSystemPromptOpen(false)} />}

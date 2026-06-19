@@ -65,6 +65,7 @@ interface ChatState {
   fontSize: FontSize;
   fontFamily: FontFamily;
   slashCommands: SlashCommand[];
+  customSlashCommands: SlashCommand[];
 
   // Actions
   setSettings: (settings: Partial<Settings>) => void;
@@ -84,8 +85,12 @@ interface ChatState {
   setTheme: (theme: Theme) => void;
   setFontSize: (fontSize: FontSize) => void;
   setFontFamily: (fontFamily: FontFamily) => void;
+  rebuildSlashCommands: () => void;
   initSlashCommands: () => void;
   syncSlashFromPresets: () => void;
+  addCustomSlashCommand: (name: string, shortcut: string, content: string) => void;
+  updateCustomSlashCommand: (id: string, name: string, shortcut: string, content: string) => void;
+  deleteCustomSlashCommand: (id: string) => void;
 }
 
 export function getActivePath(messages: Message[], leafId: string | null): Message[] {
@@ -159,6 +164,7 @@ export const useChatStore = create<ChatState>()(
       fontSize: 'medium',
       fontFamily: 'mono',
       slashCommands: [],
+      customSlashCommands: [],
 
       setSettings: (settings) => set((state) => ({
         ...state,
@@ -351,26 +357,53 @@ export const useChatStore = create<ChatState>()(
       setFontSize: (fontSize) => set({ fontSize }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
 
-      initSlashCommands: () => {
-        const existing = get().slashCommands;
-        if (existing.length > 0) return;
-
+      rebuildSlashCommands: () => {
         const builtins: SlashCommand[] = [
           { id: 'builtin-help', name: 'Help', shortcut: 'help', content: 'Available commands: /help, /clear, /summarize, /explain', builtIn: true },
           { id: 'builtin-clear', name: 'Clear Chat', shortcut: 'clear', content: '', builtIn: true },
           { id: 'builtin-summarize', name: 'Summarize', shortcut: 'summarize', content: 'Summarize the following in 3 bullet points:', builtIn: true },
           { id: 'builtin-explain', name: 'Explain Simply', shortcut: 'explain', content: "Explain this like I'm 5:", builtIn: true },
         ];
-
         const fromPresets = presetsToSlashCommands(get().presets);
+        const custom = get().customSlashCommands;
+        set({ slashCommands: [...builtins, ...fromPresets, ...custom] });
+      },
 
-        set({ slashCommands: [...builtins, ...fromPresets] });
+      initSlashCommands: () => {
+        if (get().slashCommands.length > 0) return;
+        get().rebuildSlashCommands();
       },
 
       syncSlashFromPresets: () => {
-        const builtins = get().slashCommands.filter(s => s.builtIn);
-        const fromPresets = presetsToSlashCommands(get().presets);
-        set({ slashCommands: [...builtins, ...fromPresets] });
+        get().rebuildSlashCommands();
+      },
+
+      addCustomSlashCommand: (name, shortcut, content) => {
+        const cmd: SlashCommand = {
+          id: crypto.randomUUID(),
+          name,
+          shortcut,
+          content,
+          builtIn: false,
+        };
+        set({ customSlashCommands: [...get().customSlashCommands, cmd] });
+        get().rebuildSlashCommands();
+      },
+
+      updateCustomSlashCommand: (id, name, shortcut, content) => {
+        set({
+          customSlashCommands: get().customSlashCommands.map(c =>
+            c.id === id ? { ...c, name, shortcut, content } : c
+          ),
+        });
+        get().rebuildSlashCommands();
+      },
+
+      deleteCustomSlashCommand: (id) => {
+        set({
+          customSlashCommands: get().customSlashCommands.filter(c => c.id !== id),
+        });
+        get().rebuildSlashCommands();
       },
     }),
     {
@@ -388,6 +421,7 @@ export const useChatStore = create<ChatState>()(
         fontSize: state.fontSize,
         fontFamily: state.fontFamily,
         slashCommands: state.slashCommands,
+        customSlashCommands: state.customSlashCommands,
       }),
       migrate: (persisted: any) => {
         if (persisted?.chats?.length > 0 && persisted.chats[0]?.messages?.[0]?.id === undefined) {

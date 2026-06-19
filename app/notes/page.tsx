@@ -64,6 +64,7 @@ export default function NotesPage() {
               onChange={(val) => updateNote(activeNote.id, val ?? '')}
               height="100%"
               visibleDragbar={false}
+              preview="edit"
             />
           </div>
         ) : (

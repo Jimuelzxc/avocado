@@ -1,24 +1,31 @@
-'use client';
-import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Copy, Settings as SettingsIcon, Trash2, Menu, X, Pencil } from 'lucide-react';
-import { Braces, ArrowUp, Square } from 'lucide-react'
-import { useChatStore, getActivePath } from './store/chatStore';
-import { useFolderStore } from './store/folderStore';
-import { useTagStore } from './store/tagStore';
-import { FolderTree } from './components/FolderTree';
-import { TagCloud } from './components/TagCloud';
-import { ChatContextMenu } from './components/ChatContextMenu';
-import { SettingsModal } from './components/SettingsModal';
-import { SystemPromptModal } from './components/SystemPromptModal';
-import { MarkdownRenderer } from './components/MarkdownRenderer';
-import { compressImage } from './lib/imageCompress';
-import { AttachmentPreview, Attachment } from './components/AttachmentPreview';
-import { ContentBlock, MessageContent } from './store/chatStore';
-import { Paperclip } from 'lucide-react';
-import { SlashCommandMenu } from './components/SlashCommandMenu';
-import { SlashCommandModal } from './components/SlashCommandModal';
-import type { SlashCommand } from './store/chatStore';
-
+"use client";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  RotateCcw,
+  Copy,
+  Settings as SettingsIcon,
+  Trash2,
+  Menu,
+  X,
+  Pencil,
+} from "lucide-react";
+import { Braces, ArrowUp, Square } from "lucide-react";
+import { useChatStore, getActivePath } from "./store/chatStore";
+import { useFolderStore } from "./store/folderStore";
+import { useTagStore } from "./store/tagStore";
+import { FolderTree } from "./components/FolderTree";
+import { TagCloud } from "./components/TagCloud";
+import { ChatContextMenu } from "./components/ChatContextMenu";
+import { SettingsModal } from "./components/SettingsModal";
+import { SystemPromptModal } from "./components/SystemPromptModal";
+import { MarkdownRenderer } from "./components/MarkdownRenderer";
+import { compressImage } from "./lib/imageCompress";
+import { AttachmentPreview, Attachment } from "./components/AttachmentPreview";
+import { ContentBlock, MessageContent } from "./store/chatStore";
+import { Paperclip } from "lucide-react";
+import { SlashCommandMenu } from "./components/SlashCommandMenu";
+import { SlashCommandModal } from "./components/SlashCommandModal";
+import type { SlashCommand } from "./store/chatStore";
 
 function VersionIndicator({
   siblings,
@@ -68,26 +75,30 @@ export default function Desktop_1() {
     isSettingsOpen,
   } = useChatStore();
 
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const [mounted, setMounted] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
   const [isSlashCommandOpen, setIsSlashCommandOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [contextMenuPos, setContextMenuPos] = useState<{ chatId: string; x: number; y: number } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    chatId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [slashOpen, setSlashOpen] = useState(false);
-  const [slashFilter, setSlashFilter] = useState('');
+  const [slashFilter, setSlashFilter] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
 
   const { folders, activeFolderId } = useFolderStore();
   const { tags, activeTagIds } = useTagStore();
-  const slashCommands = useChatStore(s => s.slashCommands);
+  const slashCommands = useChatStore((s) => s.slashCommands);
 
   const filteredChats = chats.filter((chat) => {
     if (activeFolderId !== null) {
@@ -101,7 +112,8 @@ export default function Desktop_1() {
       }
       collectDescendants(activeFolderId);
       const allowedFolderIds = [activeFolderId, ...descendantIds];
-      if (!chat.folderId || !allowedFolderIds.includes(chat.folderId)) return false;
+      if (!chat.folderId || !allowedFolderIds.includes(chat.folderId))
+        return false;
     }
     if (activeTagIds.length > 0) {
       if (!chat.tagIds.some((t) => activeTagIds.includes(t))) return false;
@@ -110,7 +122,12 @@ export default function Desktop_1() {
   });
 
   const filteredSlashCommands = slashOpen
-    ? slashCommands.filter(cmd => !slashFilter || cmd.shortcut.toLowerCase().includes(slashFilter.toLowerCase()) || cmd.name.toLowerCase().includes(slashFilter.toLowerCase()))
+    ? slashCommands.filter(
+        (cmd) =>
+          !slashFilter ||
+          cmd.shortcut.toLowerCase().includes(slashFilter.toLowerCase()) ||
+          cmd.name.toLowerCase().includes(slashFilter.toLowerCase()),
+      )
     : [];
 
   // Prevent hydration errors by waiting for client-side mount
@@ -129,7 +146,7 @@ export default function Desktop_1() {
 
   // Scroll to bottom on messages update
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -148,12 +165,18 @@ export default function Desktop_1() {
     }
   }, [mounted, chats.length, createChat]);
 
-  const streamFromActivePath = async (chatId: string, userContent: MessageContent) => {
+  const streamFromActivePath = async (
+    chatId: string,
+    userContent: MessageContent,
+  ) => {
     const currentState = useChatStore.getState();
     const currentChat = currentState.chats.find((c) => c.id === chatId);
     if (!currentChat || !currentChat.activeLeafId) return;
 
-    const fullPath = getActivePath(currentChat.messages, currentChat.activeLeafId);
+    const fullPath = getActivePath(
+      currentChat.messages,
+      currentChat.activeLeafId,
+    );
     const historyMessages = fullPath.slice(0, -1);
 
     abortControllerRef.current?.abort();
@@ -161,22 +184,28 @@ export default function Desktop_1() {
     abortControllerRef.current = controller;
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch("/api/chat", {
         signal: controller.signal,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiKey: useChatStore.getState().apiKey,
           baseUrl: useChatStore.getState().baseUrl,
           model: useChatStore.getState().model,
           systemPrompt: useChatStore.getState().systemPrompt,
-          messages: [...historyMessages, { role: 'user', content: userContent }],
+          messages: [
+            ...historyMessages,
+            { role: "user", content: userContent },
+          ],
         }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        replaceLastMessage(chatId, `Error: ${data.error || 'Failed to fetch AI response'}`);
+        replaceLastMessage(
+          chatId,
+          `Error: ${data.error || "Failed to fetch AI response"}`,
+        );
         useChatStore.setState({ isStreaming: false });
         return;
       }
@@ -184,40 +213,41 @@ export default function Desktop_1() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       if (!reader) {
-        replaceLastMessage(chatId, 'Error: Response stream is not readable.');
+        replaceLastMessage(chatId, "Error: Response stream is not readable.");
         useChatStore.setState({ isStreaming: false });
         return;
       }
 
-      let buffer = '';
+      let buffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
         for (const line of lines) {
           const cleaned = line.trim();
           if (!cleaned) continue;
-          if (cleaned.startsWith('data: ')) {
+          if (cleaned.startsWith("data: ")) {
             const dataStr = cleaned.slice(6);
-            if (dataStr === '[DONE]') continue;
+            if (dataStr === "[DONE]") continue;
             try {
               const parsed = JSON.parse(dataStr);
-              const chunk = parsed.choices?.[0]?.delta?.content || '';
+              const chunk = parsed.choices?.[0]?.delta?.content || "";
               if (chunk) {
                 updateLastMessage(chatId, chunk);
               }
-            } catch { }
+            } catch {}
           }
         }
       }
     } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      console.error('Streaming error:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Streaming error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       replaceLastMessage(chatId, `Error: ${errorMessage}`);
     } finally {
       if (abortControllerRef.current === controller) {
@@ -228,22 +258,27 @@ export default function Desktop_1() {
   };
 
   const contentToString = (content: MessageContent): string => {
-    if (typeof content === 'string') return content;
-    return content.map(block => {
-      if (block.type === 'text') return block.text;
-      if (block.type === 'image_url') return '[Image]';
-      if (block.type === 'pdf_text') return `[PDF: ${block.filename}]`;
-      return '';
-    }).join('\n');
+    if (typeof content === "string") return content;
+    return content
+      .map((block) => {
+        if (block.type === "text") return block.text;
+        if (block.type === "image_url") return "[Image]";
+        if (block.type === "pdf_text") return `[PDF: ${block.filename}]`;
+        return "";
+      })
+      .join("\n");
   };
 
-  const handleSendMessage = async (e?: React.FormEvent | { preventDefault: () => void }, customContent?: string) => {
+  const handleSendMessage = async (
+    e?: React.FormEvent | { preventDefault: () => void },
+    customContent?: string,
+  ) => {
     e?.preventDefault();
     const text = customContent ?? inputValue;
     if ((!text.trim() && attachments.length === 0) || isStreaming) return;
 
     if (!customContent) {
-      setInputValue('');
+      setInputValue("");
     }
 
     let targetChatId = activeChatId;
@@ -257,26 +292,36 @@ export default function Desktop_1() {
     let contentToSend: MessageContent;
     if (attachments.length > 0) {
       const blocks: ContentBlock[] = [];
-      if (text.trim()) blocks.push({ type: 'text', text });
+      if (text.trim()) blocks.push({ type: "text", text });
       for (const att of attachments) {
-        if (att.type === 'image') {
-          blocks.push({ type: 'image_url', image_url: { url: att.data } });
-        } else if (att.type === 'pdf') {
-          blocks.push({ type: 'pdf_text', text: att.data, filename: att.filename || att.name });
+        if (att.type === "image") {
+          blocks.push({ type: "image_url", image_url: { url: att.data } });
+        } else if (att.type === "pdf") {
+          blocks.push({
+            type: "pdf_text",
+            text: att.data,
+            filename: att.filename || att.name,
+          });
         }
       }
       contentToSend = blocks;
     } else {
       contentToSend = text;
     }
-    addMessage(targetChatId, { role: 'user', content: contentToSend }, parentId);
+    addMessage(
+      targetChatId,
+      { role: "user", content: contentToSend },
+      parentId,
+    );
     setAttachments([]);
 
     useChatStore.setState({ isStreaming: true });
     const stateAfterUser = useChatStore.getState();
-    const chatAfterUser = stateAfterUser.chats.find(c => c.id === targetChatId);
+    const chatAfterUser = stateAfterUser.chats.find(
+      (c) => c.id === targetChatId,
+    );
     const userMsgId = chatAfterUser?.activeLeafId ?? undefined;
-    addMessage(targetChatId, { role: 'assistant', content: '' }, userMsgId);
+    addMessage(targetChatId, { role: "assistant", content: "" }, userMsgId);
 
     await streamFromActivePath(targetChatId, contentToSend);
   };
@@ -292,34 +337,54 @@ export default function Desktop_1() {
 
   const handleCancelEdit = () => {
     setEditingMsgId(null);
-    setEditValue('');
+    setEditValue("");
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     for (const file of Array.from(files)) {
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith("image/")) {
         const data = await compressImage(file);
-        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: file.name }]);
-      } else if (file.type === 'application/pdf') {
-        const { extractPdfText } = await import('./lib/extractPdf');
+        setAttachments((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), type: "image", data, name: file.name },
+        ]);
+      } else if (file.type === "application/pdf") {
+        const { extractPdfText } = await import("./lib/extractPdf");
         const { text } = await extractPdfText(file);
-        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'pdf', data: text, filename: file.name, name: file.name }]);
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            type: "pdf",
+            data: text,
+            filename: file.name,
+            name: file.name,
+          },
+        ]);
       }
     }
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
     for (const item of Array.from(items)) {
-      if (item.type.startsWith('image/')) {
+      if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (!file) continue;
         const data = await compressImage(file);
-        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: 'Pasted image' }]);
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            type: "image",
+            data,
+            name: "Pasted image",
+          },
+        ]);
       }
     }
   };
@@ -329,13 +394,25 @@ export default function Desktop_1() {
     const files = e.dataTransfer?.files;
     if (!files) return;
     for (const file of Array.from(files)) {
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith("image/")) {
         const data = await compressImage(file);
-        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'image', data, name: file.name }]);
-      } else if (file.type === 'application/pdf') {
-        const { extractPdfText } = await import('./lib/extractPdf');
+        setAttachments((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), type: "image", data, name: file.name },
+        ]);
+      } else if (file.type === "application/pdf") {
+        const { extractPdfText } = await import("./lib/extractPdf");
         const { text } = await extractPdfText(file);
-        setAttachments((prev) => [...prev, { id: crypto.randomUUID(), type: 'pdf', data: text, filename: file.name, name: file.name }]);
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            type: "pdf",
+            data: text,
+            filename: file.name,
+            name: file.name,
+          },
+        ]);
       }
     }
   };
@@ -345,15 +422,18 @@ export default function Desktop_1() {
   };
 
   const handleSaveEdit = async () => {
-    if (!activeChatId || !editingMsgId || !editValue.trim() || isStreaming) return;
+    if (!activeChatId || !editingMsgId || !editValue.trim() || isStreaming)
+      return;
     const newContent = editValue.trim();
-    const newMsgId = useChatStore.getState().editMessage(activeChatId, editingMsgId, newContent);
+    const newMsgId = useChatStore
+      .getState()
+      .editMessage(activeChatId, editingMsgId, newContent);
     setEditingMsgId(null);
-    setEditValue('');
+    setEditValue("");
 
     if (newMsgId) {
       useChatStore.setState({ isStreaming: true });
-      addMessage(activeChatId, { role: 'assistant', content: '' }, newMsgId);
+      addMessage(activeChatId, { role: "assistant", content: "" }, newMsgId);
       await streamFromActivePath(activeChatId, newContent);
     }
   };
@@ -363,10 +443,12 @@ export default function Desktop_1() {
     const activeChatNow = chats.find((c) => c.id === activeChatId);
     if (!activeChatNow) return;
 
-    const assistantMsg = activeChatNow.messages.find(m => m.id === msgId);
-    if (!assistantMsg || assistantMsg.role !== 'assistant') return;
-    const parentUserMsg = activeChatNow.messages.find(m => m.id === assistantMsg.parentId);
-    if (!parentUserMsg || parentUserMsg.role !== 'user') return;
+    const assistantMsg = activeChatNow.messages.find((m) => m.id === msgId);
+    if (!assistantMsg || assistantMsg.role !== "assistant") return;
+    const parentUserMsg = activeChatNow.messages.find(
+      (m) => m.id === assistantMsg.parentId,
+    );
+    if (!parentUserMsg || parentUserMsg.role !== "user") return;
 
     useChatStore.getState().regenerateMessage(activeChatId, msgId);
     useChatStore.setState({ isStreaming: true });
@@ -386,11 +468,11 @@ export default function Desktop_1() {
   };
 
   const handleSlashSelect = (cmd: SlashCommand) => {
-    if (cmd.shortcut === 'clear') {
-      if (activeChatId && window.confirm('Clear this chat?')) {
+    if (cmd.shortcut === "clear") {
+      if (activeChatId && window.confirm("Clear this chat?")) {
         deleteChat(activeChatId);
         createChat();
-        setInputValue('');
+        setInputValue("");
       }
       setSlashOpen(false);
       return;
@@ -399,9 +481,10 @@ export default function Desktop_1() {
     const cursorPos = textareaRef.current?.selectionStart ?? inputValue.length;
     const textBefore = inputValue.slice(0, cursorPos);
     const textAfter = inputValue.slice(cursorPos);
-    const lastSlashIdx = textBefore.lastIndexOf('/');
+    const lastSlashIdx = textBefore.lastIndexOf("/");
     if (lastSlashIdx === -1) return;
-    const newValue = textBefore.slice(0, lastSlashIdx) + cmd.content + textAfter;
+    const newValue =
+      textBefore.slice(0, lastSlashIdx) + cmd.content + textAfter;
     setInputValue(newValue);
     setSlashOpen(false);
 
@@ -425,9 +508,7 @@ export default function Desktop_1() {
   }
 
   return (
-    <div
-      className="flex h-screen w-full bg-surface text-text-primary overflow-hidden font-mono selection:bg-[var(--selection)]"
-    >
+    <div className="flex h-screen w-full bg-surface text-text-primary overflow-hidden font-mono selection:bg-[var(--selection)]">
       {/* Sidebar */}
       <aside className="hidden md:flex w-72 flex-col border-r border-border h-full shrink-0">
         {/* Logo & Header */}
@@ -451,7 +532,9 @@ export default function Desktop_1() {
             New Chat
           </button>
           <button
-            onClick={() => { window.location.pathname = '/notes'; }}
+            onClick={() => {
+              window.location.pathname = "/notes";
+            }}
             className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
           >
             Notes
@@ -473,13 +556,25 @@ export default function Desktop_1() {
           {filteredChats.map((chat) => (
             <div
               key={chat.id}
-              className={`group flex flex-col p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'
-                }`}
-              onContextMenu={(e) => { e.preventDefault(); setContextMenuPos({ chatId: chat.id, x: e.clientX, y: e.clientY }); }}
+              className={`group flex flex-col p-2 border ${
+                chat.id === activeChatId
+                  ? "border-accent text-accent"
+                  : "border-transparent text-text-primary hover:bg-surface-overlay"
+              }`}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenuPos({
+                  chatId: chat.id,
+                  x: e.clientX,
+                  y: e.clientY,
+                });
+              }}
             >
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => useChatStore.setState({ activeChatId: chat.id })}
+                  onClick={() =>
+                    useChatStore.setState({ activeChatId: chat.id })
+                  }
                   className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
                 >
                   {chat.title}
@@ -502,13 +597,18 @@ export default function Desktop_1() {
                         key={tagId}
                         className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] border border-border"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
                         {tag.name}
                       </span>
                     );
                   })}
                   {chat.tagIds.length > 3 && (
-                    <span className="text-[10px] text-text-secondary">+{chat.tagIds.length - 3}</span>
+                    <span className="text-[10px] text-text-secondary">
+                      +{chat.tagIds.length - 3}
+                    </span>
                   )}
                 </div>
               )}
@@ -536,33 +636,42 @@ export default function Desktop_1() {
           <div className="max-w-4xl mx-auto w-full flex flex-col gap-3 md:gap-8">
             {activePath.length === 0 ? (
               <div className="border border-border p-4 md:p-8 bg-surface text-center my-8 flex flex-col gap-4">
-                <h2 className="text-lg md:text-xl text-accent font-bold">avocado. SYSTEM V1.0</h2>
+                <h2 className="text-lg md:text-xl text-accent font-bold">
+                  avocado. SYSTEM V1.0
+                </h2>
                 <p className="text-xs md:text-sm leading-relaxed text-text-secondary">
-                  Welcome to the blues AI retro terminal.
-                  Please send a message to start conversing, or open the sidebar to configure your model and keys.
+                  Welcome to the blues AI retro terminal. Please send a message
+                  to start conversing, or open the sidebar to configure your
+                  model and keys.
                 </p>
                 <div className="text-xs text-left bg-surface-overlay p-4 border border-border/20 text-accent-secondary">
-                  Current Provider: <span className="text-text-primary">{baseUrl}</span><br />
-                  Active Model: <span className="text-text-primary">{model}</span>
+                  Current Provider:{" "}
+                  <span className="text-text-primary">{baseUrl}</span>
+                  <br />
+                  Active Model:{" "}
+                  <span className="text-text-primary">{model}</span>
                 </div>
               </div>
             ) : (
               activePath.map((msg) => {
                 const siblings = activeChat
-                  ? activeChat.messages.filter(m => m.parentId === msg.parentId).sort((a, b) => a.createdAt - b.createdAt)
+                  ? activeChat.messages
+                      .filter((m) => m.parentId === msg.parentId)
+                      .sort((a, b) => a.createdAt - b.createdAt)
                   : [];
-                const siblingIdx = siblings.findIndex(s => s.id === msg.id);
+                const siblingIdx = siblings.findIndex((s) => s.id === msg.id);
                 const isEditing = editingMsgId === msg.id;
 
                 return (
                   <div
                     key={msg.id}
-                    className={`${msg.role === 'user'
-                      ? 'self-end flex flex-col items-end'
-                      : 'self-start w-full md:max-w-[85%] flex flex-col gap-4'
-                      }`}
+                    className={`${
+                      msg.role === "user"
+                        ? "self-end flex flex-col items-end"
+                        : "self-start w-full md:max-w-[85%] flex flex-col gap-4"
+                    }`}
                   >
-                    {msg.role === 'user' ? (
+                    {msg.role === "user" ? (
                       <>
                         <div className="border border-border p-4 w-full md:max-w-[70%] min-w-0 md:min-w-[200px] max-w-full bg-surface">
                           {isEditing ? (
@@ -572,7 +681,7 @@ export default function Desktop_1() {
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                  if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
                                     handleSaveEdit();
                                   }
@@ -610,7 +719,9 @@ export default function Desktop_1() {
                               />
                             )}
                             <button
-                              onClick={() => handleEdit(msg.id, contentToString(msg.content))}
+                              onClick={() =>
+                                handleEdit(msg.id, contentToString(msg.content))
+                              }
                               disabled={isStreaming}
                               className="text-text-secondary hover:text-accent transition-colors cursor-pointer disabled:opacity-50 p-1"
                               aria-label="Edit message"
@@ -624,7 +735,9 @@ export default function Desktop_1() {
                       <>
                         <MarkdownRenderer
                           content={msg.content}
-                          isStreaming={isStreaming && msg.id === activeChat?.activeLeafId}
+                          isStreaming={
+                            isStreaming && msg.id === activeChat?.activeLeafId
+                          }
                         />
                         <div className="flex items-center gap-3 pt-2 text-text-secondary">
                           {siblings.length > 1 && (
@@ -643,7 +756,9 @@ export default function Desktop_1() {
                             <RotateCcw size={18} strokeWidth={1.5} />
                           </button>
                           <button
-                            onClick={() => handleCopy(contentToString(msg.content))}
+                            onClick={() =>
+                              handleCopy(contentToString(msg.content))
+                            }
                             className="hover:text-accent transition-colors p-1 cursor-pointer"
                             aria-label="Copy to clipboard"
                           >
@@ -670,12 +785,19 @@ export default function Desktop_1() {
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
             >
-              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleFileSelect} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
               <textarea
                 ref={textareaRef}
                 className="w-full bg-transparent border-none outline-none resize-none text-base placeholder:text-text-secondary min-h-[60px] font-mono"
                 placeholder="Ask a question...  Type / for commands"
-                rows={2}
+                rows={1}
                 value={inputValue}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -683,14 +805,14 @@ export default function Desktop_1() {
 
                   const cursorPos = e.target.selectionStart;
                   const textBeforeCursor = val.slice(0, cursorPos);
-                  const lastWord = textBeforeCursor.split(/\s/).pop() || '';
+                  const lastWord = textBeforeCursor.split(/\s/).pop() || "";
 
-                  if (lastWord.startsWith('/') && lastWord.length > 1) {
+                  if (lastWord.startsWith("/") && lastWord.length > 1) {
                     setSlashFilter(lastWord.slice(1));
                     setSlashOpen(true);
                     setSlashIndex(0);
-                  } else if (lastWord === '/') {
-                    setSlashFilter('');
+                  } else if (lastWord === "/") {
+                    setSlashFilter("");
                     setSlashOpen(true);
                     setSlashIndex(0);
                   } else {
@@ -701,46 +823,60 @@ export default function Desktop_1() {
                 onKeyDown={(e) => {
                   if (slashOpen) {
                     const list = filteredSlashCommands;
-                    if (e.key === 'ArrowDown') {
+                    if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      if (list.length > 0) setSlashIndex(i => Math.min(i + 1, list.length - 1));
+                      if (list.length > 0)
+                        setSlashIndex((i) => Math.min(i + 1, list.length - 1));
                       return;
                     }
-                    if (e.key === 'ArrowUp') {
+                    if (e.key === "ArrowUp") {
                       e.preventDefault();
-                      setSlashIndex(i => Math.max(i - 1, 0));
+                      setSlashIndex((i) => Math.max(i - 1, 0));
                       return;
                     }
-                    if (e.key === 'Enter' && list[slashIndex]) {
+                    if (e.key === "Enter" && list[slashIndex]) {
                       e.preventDefault();
                       handleSlashSelect(list[slashIndex]);
                       return;
                     }
-                    if (e.key === 'Escape') {
+                    if (e.key === "Escape") {
                       setSlashOpen(false);
                       return;
                     }
                   }
 
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSendMessage(e);
                   }
                 }}
               />
-              <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
+              <AttachmentPreview
+                attachments={attachments}
+                onRemove={removeAttachment}
+              />
               <div className=" flex justify-between items-center w-full">
                 <div className="text-text-primary flex items-center gap-2">
-                  <button type="button" onClick={() => fileInputRef.current?.click()}>
-                    <Paperclip size={22} strokeWidth={1.5} />
-                  </button>
-                  <button type="button" onClick={() => setIsSlashCommandOpen(true)}>
-                    <span className="text-lg font-bold leading-none">/</span>
-                  </button>
-                  <button id="system-prompt" type="button" onClick={() => setIsSystemPromptOpen(true)}>
-                    <Braces size={22} strokeWidth={1.5} />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip size={22} strokeWidth={1.3} className="-rotate-45"/>
                   </button>
 
+                  <button
+                    id="system-prompt"
+                    type="button"
+                    onClick={() => setIsSystemPromptOpen(true)}
+                  >
+                    <Braces size={22} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSlashCommandOpen(true)}
+                  >
+                    <span className="text-lg font-bold leading-none px-2 font-medium">/</span>
+                  </button>
                 </div>
                 <div>
                   {isStreaming ? (
@@ -763,7 +899,6 @@ export default function Desktop_1() {
                     </button>
                   )}
                 </div>
-
               </div>
               {slashOpen && (
                 <SlashCommandMenu
@@ -809,7 +944,10 @@ export default function Desktop_1() {
               <h1 className="text-accent text-base tracking-wide">avocado.</h1>
               <div className="flex gap-2 items-center">
                 <button
-                  onClick={() => { setSettingsOpen(true); setIsMobileSidebarOpen(false); }}
+                  onClick={() => {
+                    setSettingsOpen(true);
+                    setIsMobileSidebarOpen(false);
+                  }}
                   className="p-1 hover:text-accent transition-colors cursor-pointer"
                   aria-label="Settings"
                 >
@@ -826,13 +964,18 @@ export default function Desktop_1() {
             </div>
             <div className="px-5 pb-6 flex flex-col gap-2">
               <button
-                onClick={() => { createChat(); setIsMobileSidebarOpen(false); }}
+                onClick={() => {
+                  createChat();
+                  setIsMobileSidebarOpen(false);
+                }}
                 className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
               >
                 New Chat
               </button>
               <button
-                onClick={() => { window.location.pathname = '/notes'; }}
+                onClick={() => {
+                  window.location.pathname = "/notes";
+                }}
                 className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
               >
                 Notes
@@ -848,12 +991,22 @@ export default function Desktop_1() {
               {filteredChats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`group flex flex-col p-2 border ${chat.id === activeChatId ? 'border-accent text-accent' : 'border-transparent text-text-primary hover:bg-surface-overlay'}`}
-                  onContextMenu={(e) => { e.preventDefault(); setContextMenuPos({ chatId: chat.id, x: e.clientX, y: e.clientY }); }}
+                  className={`group flex flex-col p-2 border ${chat.id === activeChatId ? "border-accent text-accent" : "border-transparent text-text-primary hover:bg-surface-overlay"}`}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenuPos({
+                      chatId: chat.id,
+                      x: e.clientX,
+                      y: e.clientY,
+                    });
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <button
-                      onClick={() => { useChatStore.setState({ activeChatId: chat.id }); setIsMobileSidebarOpen(false); }}
+                      onClick={() => {
+                        useChatStore.setState({ activeChatId: chat.id });
+                        setIsMobileSidebarOpen(false);
+                      }}
                       className="flex-1 text-left text-sm truncate pr-2 cursor-pointer focus:outline-none"
                     >
                       {chat.title}
@@ -876,13 +1029,18 @@ export default function Desktop_1() {
                             key={tagId}
                             className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] border border-border"
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: tag.color }}
+                            />
                             {tag.name}
                           </span>
                         );
                       })}
                       {chat.tagIds.length > 3 && (
-                        <span className="text-[10px] text-text-secondary">+{chat.tagIds.length - 3}</span>
+                        <span className="text-[10px] text-text-secondary">
+                          +{chat.tagIds.length - 3}
+                        </span>
                       )}
                     </div>
                   )}
@@ -897,10 +1055,14 @@ export default function Desktop_1() {
       {isSettingsOpen && <SettingsModal />}
 
       {/* Slash Command Modal */}
-      {isSlashCommandOpen && <SlashCommandModal onClose={() => setIsSlashCommandOpen(false)} />}
+      {isSlashCommandOpen && (
+        <SlashCommandModal onClose={() => setIsSlashCommandOpen(false)} />
+      )}
 
       {/* System Prompt Modal */}
-      {isSystemPromptOpen && <SystemPromptModal onClose={() => setIsSystemPromptOpen(false)} />}
+      {isSystemPromptOpen && (
+        <SystemPromptModal onClose={() => setIsSystemPromptOpen(false)} />
+      )}
     </div>
   );
 }

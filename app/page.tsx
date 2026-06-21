@@ -18,6 +18,7 @@ import { TagCloud } from "./components/TagCloud";
 import { ChatContextMenu } from "./components/ChatContextMenu";
 import { SettingsModal } from "./components/SettingsModal";
 import { SystemPromptModal } from "./components/SystemPromptModal";
+import { ImportExportModal } from "./components/ImportExportModal";
 import { MarkdownRenderer } from "./components/MarkdownRenderer";
 import { compressImage } from "./lib/imageCompress";
 import { AttachmentPreview, Attachment } from "./components/AttachmentPreview";
@@ -78,6 +79,7 @@ export default function Desktop_1() {
   const [inputValue, setInputValue] = useState("");
   const [mounted, setMounted] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isSlashCommandOpen, setIsSlashCommandOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
@@ -550,6 +552,14 @@ export default function Desktop_1() {
         <div className="border-b border-border pb-2 mb-2 mx-3">
           <TagCloud />
         </div>
+        <div className="px-5 pb-2">
+          <button
+            onClick={() => setIsImportExportOpen(true)}
+            className="w-full text-left text-xs text-text-secondary hover:text-accent transition-colors cursor-pointer py-1"
+          >
+            Export / Import
+          </button>
+        </div>
 
         {/* Chat History List */}
         <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-2">
@@ -987,6 +997,14 @@ export default function Desktop_1() {
             <div className="border-b border-border pb-2 mb-2 mx-3">
               <TagCloud />
             </div>
+            <div className="px-5 pb-2">
+              <button
+                onClick={() => setIsImportExportOpen(true)}
+                className="w-full text-left text-xs text-text-secondary hover:text-accent transition-colors cursor-pointer py-1"
+              >
+                Export / Import
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto px-5 flex flex-col gap-2">
               {filteredChats.map((chat) => (
                 <div
@@ -1063,6 +1081,9 @@ export default function Desktop_1() {
       {isSystemPromptOpen && (
         <SystemPromptModal onClose={() => setIsSystemPromptOpen(false)} />
       )}
+
+      {/* Import / Export Modal */}
+      {isImportExportOpen && <ImportExportModal onClose={() => setIsImportExportOpen(false)} />}
     </div>
   );
 }

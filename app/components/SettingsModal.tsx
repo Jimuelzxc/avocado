@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { useChatStore, Theme, FontSize, FontFamily } from '../store/chatStore';
+import { ImportExportModal } from './ImportExportModal';
 
 export function SettingsModal() {
   const { apiKey, baseUrl, model, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
 
-  const [activeTab, setActiveTab] = useState<'appearance' | 'api'>('api');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'api' | 'data'>('api');
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
   const [preset, setPreset] = useState(() => {
     if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
@@ -43,7 +45,7 @@ export function SettingsModal() {
     setSettingsOpen(false);
   };
 
-  const tabClass = (tab: 'appearance' | 'api') =>
+  const tabClass = (tab: 'appearance' | 'api' | 'data') =>
     `flex-1 py-2 text-sm font-bold transition-colors cursor-pointer ${
       activeTab === tab
         ? 'text-accent border-b-2 border-accent'
@@ -70,6 +72,9 @@ export function SettingsModal() {
           </button>
           <button onClick={() => setActiveTab('appearance')} className={tabClass('appearance')}>
             Appearance
+          </button>
+          <button onClick={() => setActiveTab('data')} className={tabClass('data')}>
+            Data
           </button>
         </div>
 
@@ -114,6 +119,18 @@ export function SettingsModal() {
                 <option value="sans">Sans-serif</option>
               </select>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'data' && (
+          <div className="flex flex-col gap-4 text-sm">
+            <p className="text-text-secondary text-xs">Export or import your data as JSON.</p>
+            <button
+              onClick={() => setIsImportExportOpen(true)}
+              className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+            >
+              Open Import / Export
+            </button>
           </div>
         )}
 
@@ -182,6 +199,7 @@ export function SettingsModal() {
           </button>
         </div>
       </div>
+      {isImportExportOpen && <ImportExportModal onClose={() => setIsImportExportOpen(false)} />}
     </div>
   );
 }

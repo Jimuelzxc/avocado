@@ -13,7 +13,7 @@ const STORE_META: Record<string, StoreInfo> = {
 
 const STORE_KEYS = Object.keys(STORE_META);
 
-interface ExportData {
+export interface ExportData {
   version: number;
   exportedAt: string;
   stores: Record<string, { state: unknown }>;
@@ -23,6 +23,7 @@ interface ImportResult {
   success: boolean;
   error?: string;
   preview?: { key: string; count: number }[];
+  data?: ExportData;
 }
 
 function getDateStr(): string {
@@ -97,7 +98,7 @@ export function previewImport(file: File): Promise<ImportResult> {
             preview.push({ key: STORE_META[key].label, count: arr.length });
           }
         }
-        resolve({ success: true, preview });
+        resolve({ success: true, preview, data: d });
       } catch {
         resolve({ success: false, error: 'Failed to parse JSON file' });
       }

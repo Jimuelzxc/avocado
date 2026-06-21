@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { exportAll, previewImport, importAll } from '../lib/importExport';
+import { exportAll, previewImport, importAll, type ExportData } from '../lib/importExport';
 
 interface ImportExportModalProps {
   onClose: () => void;
@@ -12,7 +12,7 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
   const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace');
   const [preview, setPreview] = useState<{ key: string; count: number }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importData, setImportData] = useState<any>(null);
+  const [importData, setImportData] = useState<ExportData | null>(null);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4 mx-2">
@@ -62,11 +62,7 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
                   setError(result.error ?? 'Unknown error');
                 } else if (result.preview) {
                   setPreview(result.preview);
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    try { setImportData(JSON.parse(reader.result as string)); } catch {}
-                  };
-                  reader.readAsText(file);
+                  setImportData(result.data ?? null);
                 }
               }}
             />

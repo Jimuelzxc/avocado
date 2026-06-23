@@ -44,6 +44,7 @@ export interface Settings {
   baseUrl: string;
   model: string;
   systemPrompt: string;
+  provider: 'openai' | 'gemini';
 }
 
 export type Theme = 'default' | 'dark' | 'light' | 'claude' | 'avocado';
@@ -154,6 +155,7 @@ export const useChatStore = create<ChatState>()(
       baseUrl: 'https://openrouter.ai/api/v1',
       model: 'meta-llama/llama-3.2-3b-instruct',
       systemPrompt: '',
+      provider: 'openai',
       presets: [],
       activePresetId: null,
       chats: [],
@@ -413,6 +415,7 @@ export const useChatStore = create<ChatState>()(
         baseUrl: state.baseUrl,
         model: state.model,
         systemPrompt: state.systemPrompt,
+        provider: state.provider,
         presets: state.presets,
         activePresetId: state.activePresetId,
         chats: state.chats,

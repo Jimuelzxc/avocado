@@ -53,7 +53,7 @@ export interface PresetConfig {
   model: string;
 }
 
-export type PresetName = 'openrouter' | 'ollama' | 'gemini' | 'custom';
+export type PresetName = 'openrouter' | 'gemini' | 'custom';
 
 export type Theme = 'default' | 'dark' | 'light' | 'claude' | 'avocado';
 export type FontSize = 'small' | 'medium' | 'large';
@@ -171,7 +171,6 @@ export const useChatStore = create<ChatState>()(
       activePreset: 'openrouter',
       presetConfigs: {
         openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.2-3b-instruct' },
-        ollama: { apiKey: '', baseUrl: 'http://localhost:11434/v1', model: 'llama3.2' },
         gemini: { apiKey: '', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash' },
         custom: { apiKey: '', baseUrl: '', model: '' },
       },
@@ -485,11 +484,11 @@ export const useChatStore = create<ChatState>()(
           const isGemini = persisted.provider === 'gemini';
           const isLocal = persisted.baseUrl?.includes('localhost') || persisted.baseUrl?.includes('127.0.0.1');
           const isOpenRouter = persisted.baseUrl?.includes('openrouter.ai');
-          const detectedPreset = isGemini ? 'gemini' : isLocal ? 'ollama' : isOpenRouter ? 'openrouter' : 'custom';
+          const detectedSource = isGemini ? 'gemini' : isLocal ? 'ollama' : isOpenRouter ? 'openrouter' : 'custom';
+          const detectedPreset = detectedSource === 'ollama' ? 'openrouter' : detectedSource as PresetName;
 
           persisted.presetConfigs = {
             openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.2-3b-instruct' },
-            ollama: { apiKey: '', baseUrl: 'http://localhost:11434/v1', model: 'llama3.2' },
             gemini: { apiKey: '', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash' },
             custom: { apiKey: '', baseUrl: '', model: '' },
           };

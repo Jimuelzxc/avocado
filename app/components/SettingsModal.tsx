@@ -133,7 +133,6 @@ export function SettingsModal() {
               className="w-full bg-surface border border-border text-text-primary px-3 py-2 outline-none focus:border-accent transition-colors"
             >
               <option value="openrouter">OpenRouter (Cloud)</option>
-              <option value="ollama">Ollama (Localhost)</option>
               <option value="gemini">Gemini (Google)</option>
               <option value="custom">Custom Endpoint</option>
             </select>
@@ -152,15 +151,13 @@ export function SettingsModal() {
                 type={showKey ? 'text' : 'password'}
                 value={localApiKey}
                 onChange={(e) => setLocalApiKey(e.target.value)}
-                placeholder={preset === 'ollama' ? 'No API key required' : preset === 'gemini' ? 'Gemini API key' : 'sk-...'}
-                disabled={preset === 'ollama'}
-                className="w-full bg-surface border border-border text-text-primary px-3 py-2 pr-14 outline-none focus:border-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-text-secondary/50"
+                placeholder={preset === 'gemini' ? 'Gemini API key' : 'sk-...'}
+                className="w-full bg-surface border border-border text-text-primary px-3 py-2 pr-14 outline-none focus:border-accent transition-colors placeholder:text-text-secondary/50"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                disabled={preset === 'ollama'}
-                className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] text-accent hover:text-accent-secondary transition-colors disabled:opacity-40 cursor-pointer"
+                className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] text-accent hover:text-accent-secondary transition-colors cursor-pointer"
               >
                 {showKey ? 'Hide' : 'Show'}
               </button>

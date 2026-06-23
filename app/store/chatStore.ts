@@ -451,6 +451,10 @@ export const useChatStore = create<ChatState>()(
     {
       name: 'blues-chat-storage',
       partialize: (state) => ({
+        apiKey: state.apiKey,
+        baseUrl: state.baseUrl,
+        model: state.model,
+        provider: state.provider,
         activePreset: state.activePreset,
         presetConfigs: state.presetConfigs,
         systemPrompt: state.systemPrompt,
@@ -497,10 +501,11 @@ export const useChatStore = create<ChatState>()(
           };
 
           persisted.activePreset = detectedPreset;
-          delete persisted.apiKey;
-          delete persisted.baseUrl;
-          delete persisted.model;
-          delete persisted.provider;
+          // Sync flat fields to the detected preset
+          persisted.apiKey = persisted.presetConfigs[detectedPreset].apiKey;
+          persisted.baseUrl = persisted.presetConfigs[detectedPreset].baseUrl;
+          persisted.model = persisted.presetConfigs[detectedPreset].model;
+          persisted.provider = detectedPreset === 'gemini' ? 'gemini' : 'openai';
         }
         return persisted;
       },

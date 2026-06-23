@@ -1,55 +1,38 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChatStore, Theme, FontSize, FontFamily } from '../store/chatStore';
+import { useChatStore, Theme, FontSize, FontFamily, PresetName } from '../store/chatStore';
 import { ImportExportModal } from './ImportExportModal';
 
 export function SettingsModal() {
-  const { apiKey, baseUrl, model, provider, geminiApiKey, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
+  const { apiKey, baseUrl, model, activePreset, presetConfigs, switchPreset, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
 
   const [activeTab, setActiveTab] = useState<'appearance' | 'api' | 'data'>('api');
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
-  const [preset, setPreset] = useState(() => {
-    if (provider === 'gemini') return 'gemini';
-    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-      return 'ollama';
-    } else if (baseUrl.includes('openrouter.ai')) {
-      return 'openrouter';
-    } else {
-      return 'custom';
-    }
-  });
-  const [localApiKey, setLocalApiKey] = useState(provider === 'gemini' ? geminiApiKey : apiKey);
+  const [preset, setPreset] = useState<PresetName>(activePreset);
+  const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localBaseUrl, setLocalBaseUrl] = useState(baseUrl);
   const [localModel, setLocalModel] = useState(model);
   const [showKey, setShowKey] = useState(false);
 
   const handlePresetChange = (selected: string) => {
-    setPreset(selected);
-    if (selected === 'ollama') {
-      setLocalBaseUrl('http://localhost:11434/v1');
-      setLocalModel('llama3.2');
-      setLocalApiKey('');
-    } else if (selected === 'openrouter') {
-      setLocalBaseUrl('https://openrouter.ai/api/v1');
-      setLocalModel('meta-llama/llama-3.2-3b-instruct');
-      setLocalApiKey(apiKey);
-    } else if (selected === 'gemini') {
-      setLocalBaseUrl('https://generativelanguage.googleapis.com/v1beta');
-      setLocalModel('gemini-2.5-flash');
-      setLocalApiKey(geminiApiKey);
-    } else if (selected === 'custom') {
-      setLocalApiKey(apiKey);
-    }
+    const name = selected as PresetName;
+    setPreset(name);
+    const config = presetConfigs[name];
+    setLocalBaseUrl(config.baseUrl);
+    setLocalModel(config.model);
+    setLocalApiKey(config.apiKey);
   };
 
   const handleSave = () => {
-    if (preset === 'gemini') {
-      setSettings({ geminiApiKey: localApiKey, baseUrl: localBaseUrl, model: localModel, provider: 'gemini' });
-    } else {
-      setSettings({ apiKey: localApiKey, baseUrl: localBaseUrl, model: localModel, provider: 'openai' });
-    }
+    switchPreset(preset);
+    setSettings({
+      apiKey: localApiKey,
+      baseUrl: localBaseUrl,
+      model: localModel,
+      provider: preset === 'gemini' ? 'gemini' : 'openai',
+    });
     setSettingsOpen(false);
   };
 

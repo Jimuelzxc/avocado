@@ -196,6 +196,7 @@ export default function Desktop_1() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          provider: useChatStore.getState().provider,
           apiKey: useChatStore.getState().apiKey,
           baseUrl: useChatStore.getState().baseUrl,
           model: useChatStore.getState().model,

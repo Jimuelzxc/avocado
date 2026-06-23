@@ -68,8 +68,6 @@ export default function Desktop_1() {
   const {
     chats,
     activeChatId,
-    baseUrl,
-    model,
     isStreaming,
     setSettingsOpen,
     createChat,
@@ -86,7 +84,7 @@ export default function Desktop_1() {
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isSlashCommandOpen, setIsSlashCommandOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -197,7 +195,7 @@ export default function Desktop_1() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: useChatStore.getState().provider,
-          apiKey: useChatStore.getState().provider === 'gemini' ? useChatStore.getState().geminiApiKey : useChatStore.getState().apiKey,
+          apiKey: useChatStore.getState().apiKey,
           baseUrl: useChatStore.getState().baseUrl,
           model: useChatStore.getState().model,
           systemPrompt: useChatStore.getState().systemPrompt,
@@ -669,29 +667,158 @@ export default function Desktop_1() {
           </button>
         </div>
 
-        {/* Messages list */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-10">
-          <div className="max-w-4xl mx-auto w-full flex flex-col gap-3 md:gap-8">
-            {activePath.length === 0 ? (
-              <div className="border border-border p-4 md:p-8 bg-surface text-center my-8 flex flex-col gap-4">
+        {activePath.length === 0 ? (
+          /* Empty state: centered welcome + input */
+          <div className="flex-1 flex items-center justify-center p-4 md:p-10">
+            <div className="max-w-xl mx-auto w-full flex flex-col items-center gap-8">
+              <div className="text-center flex flex-col gap-2">
                 <h2 className="text-lg md:text-xl text-accent font-bold">
-                  avocado. SYSTEM V1.0
+                  avocado.
                 </h2>
-                <p className="text-xs md:text-sm leading-relaxed text-text-secondary">
-                  Welcome to the blues AI retro terminal. Please send a message
-                  to start conversing, or open the sidebar to configure your
-                  model and keys.
+                <p className="text-xs md:text-sm text-text-secondary">
+                  Send a message to start.
                 </p>
-                <div className="text-xs text-left bg-surface-overlay p-4 border border-border/20 text-accent-secondary">
-                  Current Provider:{" "}
-                  <span className="text-text-primary">{baseUrl}</span>
-                  <br />
-                  Active Model:{" "}
-                  <span className="text-text-primary">{model}</span>
+              </div>
+              <form
+                className="w-full border border-border p-3 md:p-6 flex flex-col gap-3 md:gap-4 relative min-h-[100px] md:min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
+                onSubmit={handleSendMessage}
+                onPaste={handlePaste}
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <textarea
+                  ref={textareaRef}
+                  className="w-full bg-transparent border-none outline-none resize-none text-base placeholder:text-text-secondary min-h-[60px] font-mono"
+                  placeholder="Ask a question...  Type / for commands"
+                  rows={1}
+                  value={inputValue}
+                  onChange={(e) => {
+                  const val = e.target.value;
+                  setInputValue(val);
+
+                  const cursorPos = e.target.selectionStart;
+                  const textBeforeCursor = val.slice(0, cursorPos);
+                  const lastWord = textBeforeCursor.split(/\s/).pop() || "";
+
+                  if (lastWord.startsWith("/") && lastWord.length > 1) {
+                    setSlashFilter(lastWord.slice(1));
+                    setSlashOpen(true);
+                    setSlashIndex(0);
+                  } else if (lastWord === "/") {
+                    setSlashFilter("");
+                    setSlashOpen(true);
+                    setSlashIndex(0);
+                  } else {
+                    setSlashOpen(false);
+                  }
+                }}
+                disabled={isStreaming}
+                onKeyDown={(e) => {
+                  if (slashOpen) {
+                    const list = filteredSlashCommands;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      if (list.length > 0)
+                        setSlashIndex((i) => Math.min(i + 1, list.length - 1));
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setSlashIndex((i) => Math.max(i - 1, 0));
+                      return;
+                    }
+                    if (e.key === "Enter" && list[slashIndex]) {
+                      e.preventDefault();
+                      handleSlashSelect(list[slashIndex]);
+                      return;
+                    }
+                    if (e.key === "Escape") {
+                      setSlashOpen(false);
+                      return;
+                    }
+                  }
+
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                }}
+              />
+              <AttachmentPreview
+                attachments={attachments}
+                onRemove={removeAttachment}
+              />
+              <div className=" flex justify-between items-center w-full">
+                <div className="text-text-primary flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip size={20} strokeWidth={1.3} className="-rotate-45"/>
+                  </button>
+
+                  <button
+                    id="system-prompt"
+                    type="button"
+                    onClick={() => setIsSystemPromptOpen(true)}
+                  >
+                    <Braces size={20} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSlashCommandOpen(true)}
+                  >
+                    <span className="text-lg font-bold leading-none px-2 font-medium">/</span>
+                  </button>
+                </div>
+                <div>
+                  {isStreaming ? (
+                    <button
+                      type="button"
+                      onClick={handleStopStream}
+                      className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-accent-secondary hover:text-red-400 cursor-pointer"
+                      aria-label="Stop streaming"
+                    >
+                      <Square size={22} strokeWidth={1.5} />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={!inputValue.trim() && attachments.length === 0}
+                      className="p-2 hover:bg-surface-overlay rounded-sm transition-colors text-text-primary hover:text-accent disabled:opacity-50 disabled:hover:text-text-primary cursor-pointer"
+                      aria-label="Send message"
+                    >
+                      <ArrowUp size={22} strokeWidth={1.5} />
+                    </button>
+                  )}
                 </div>
               </div>
-            ) : (
-              activePath.map((msg) => {
+              {slashOpen && (
+                <SlashCommandMenu
+                  commands={filteredSlashCommands}
+                  filter={slashFilter}
+                  selectedIndex={slashIndex}
+                  onSelect={handleSlashSelect}
+                  onClose={() => setSlashOpen(false)}
+                />
+              )}
+            </form>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Chat state: scrollable messages */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-10">
+            <div className="max-w-4xl mx-auto w-full flex flex-col gap-3 md:gap-8">
+              {activePath.map((msg) => {
                 const siblings = activeChat
                   ? activeChat.messages
                       .filter((m) => m.parentId === msg.parentId)
@@ -807,37 +934,36 @@ export default function Desktop_1() {
                     )}
                   </div>
                 );
-              })
-            )}
-            <div ref={messagesEndRef} />
+              })}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-        </div>
 
-        {/* Form Input */}
-        <div className="p-3 md:p-8 shrink-0 w-full">
-          <div className="max-w-4xl mx-auto w-full">
-            <form
-              className="border border-border p-3 md:p-6 flex flex-col gap-3 md:gap-4 relative min-h-[100px] md:min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
-              onSubmit={handleSendMessage}
-              onPaste={handlePaste}
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <textarea
-                ref={textareaRef}
-                className="w-full bg-transparent border-none outline-none resize-none text-base placeholder:text-text-secondary min-h-[60px] font-mono"
-                placeholder="Ask a question...  Type / for commands"
-                rows={1}
-                value={inputValue}
-                onChange={(e) => {
+          {/* Form Input */}
+          <div className="p-3 md:p-8 shrink-0 w-full">
+            <div className="max-w-4xl mx-auto w-full">
+              <form
+                className="border border-border p-3 md:p-6 flex flex-col gap-3 md:gap-4 relative min-h-[100px] md:min-h-[120px] bg-surface group focus-within:ring-1 focus-within:ring-accent transition-all"
+                onSubmit={handleSendMessage}
+                onPaste={handlePaste}
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <textarea
+                  ref={textareaRef}
+                  className="w-full bg-transparent border-none outline-none resize-none text-base placeholder:text-text-secondary min-h-[60px] font-mono"
+                  placeholder="Ask a question...  Type / for commands"
+                  rows={1}
+                  value={inputValue}
+                  onChange={(e) => {
                   const val = e.target.value;
                   setInputValue(val);
 
@@ -899,7 +1025,7 @@ export default function Desktop_1() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Paperclip size={22} strokeWidth={1.3} className="-rotate-45"/>
+                    <Paperclip size={18} strokeWidth={1.3} className="-rotate-45"/>
                   </button>
 
                   <button
@@ -950,6 +1076,8 @@ export default function Desktop_1() {
             </form>
           </div>
         </div>
+        </>
+      )}
       </main>
 
       {contextMenuPos && (

@@ -156,7 +156,7 @@ async function handleGeminiRequest(
 
 function processGeminiLine(
   line: string,
-  controller: ReadableStreamDefaultController,
+  controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder
 ) {
   if (!line || line === 'data: [DONE]') return;
@@ -184,7 +184,7 @@ function contentToParts(content: any): any[] {
     return content.map((block: any) => {
       if (block.type === 'text') return { text: block.text };
       if (block.type === 'image_url') {
-        const match = block.image_url.url.match(/^data:(.+?);base64,(.+)$/);
+        const match = block.image_url?.url?.match(/^data:(.+?);base64,(.+)$/);
         if (match) {
           return { inlineData: { mimeType: match[1], data: match[2] } };
         }

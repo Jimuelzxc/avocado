@@ -5,12 +5,13 @@ import { useChatStore, Theme, FontSize, FontFamily } from '../store/chatStore';
 import { ImportExportModal } from './ImportExportModal';
 
 export function SettingsModal() {
-  const { apiKey, baseUrl, model, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
+  const { apiKey, baseUrl, model, provider, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
 
   const [activeTab, setActiveTab] = useState<'appearance' | 'api' | 'data'>('api');
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
   const [preset, setPreset] = useState(() => {
+    if (provider === 'gemini') return 'gemini';
     if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
       return 'ollama';
     } else if (baseUrl.includes('openrouter.ai')) {
@@ -33,6 +34,9 @@ export function SettingsModal() {
     } else if (selected === 'openrouter') {
       setLocalBaseUrl('https://openrouter.ai/api/v1');
       setLocalModel('meta-llama/llama-3.2-3b-instruct');
+    } else if (selected === 'gemini') {
+      setLocalBaseUrl('https://generativelanguage.googleapis.com/v1beta');
+      setLocalModel('gemini-2.5-flash');
     }
   };
 
@@ -41,6 +45,7 @@ export function SettingsModal() {
       apiKey: localApiKey,
       baseUrl: localBaseUrl,
       model: localModel,
+      provider: preset === 'gemini' ? 'gemini' : 'openai',
     });
     setSettingsOpen(false);
   };
@@ -143,6 +148,7 @@ export function SettingsModal() {
             >
               <option value="openrouter">OpenRouter (Cloud)</option>
               <option value="ollama">Ollama (Localhost)</option>
+              <option value="gemini">Gemini (Google)</option>
               <option value="custom">Custom Endpoint</option>
             </select>
 

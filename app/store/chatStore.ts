@@ -67,6 +67,7 @@ interface ChatState {
   fontFamily: FontFamily;
   slashCommands: SlashCommand[];
   customSlashCommands: SlashCommand[];
+  provider: 'openai' | 'gemini';
 
   // Actions
   setSettings: (settings: Partial<Settings>) => void;

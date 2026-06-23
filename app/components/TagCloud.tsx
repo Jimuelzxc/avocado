@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTagStore } from '../store/tagStore';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Tag } from 'lucide-react';
 
 export function TagCloud() {
   const { tags, activeTagIds, createTag, deleteTag, toggleTagFilter } = useTagStore();
@@ -20,7 +20,10 @@ export function TagCloud() {
   return (
     <div className="flex flex-col gap-1 px-3 py-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-text-secondary tracking-wider uppercase">Tags</span>
+        <span className="text-xs text-text-secondary tracking-wider uppercase flex items-center gap-1.5">
+          <Tag size={12} />
+          Tags
+        </span>
         <button
           onClick={() => setAdding(!adding)}
           className="text-text-secondary hover:text-accent transition-colors cursor-pointer"

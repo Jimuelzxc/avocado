@@ -8,6 +8,10 @@ import {
   Menu,
   X,
   Pencil,
+  Plus,
+  FileText,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { Braces, ArrowUp, Square } from "lucide-react";
 import { useChatStore, getActivePath } from "./store/chatStore";
@@ -82,6 +86,7 @@ export default function Desktop_1() {
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isSlashCommandOpen, setIsSlashCommandOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -512,33 +517,45 @@ export default function Desktop_1() {
   return (
     <div className="flex h-screen w-full bg-surface text-text-primary overflow-hidden font-mono selection:bg-[var(--selection)]">
       {/* Sidebar */}
+      {isDesktopSidebarOpen && (
       <aside className="hidden md:flex w-72 flex-col border-r border-border h-full shrink-0">
         {/* Logo & Header */}
         <div className="p-5 flex justify-between items-center">
           <h1 className="text-accent text-base tracking-wide">avocado.</h1>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="p-1 hover:text-accent transition-colors cursor-pointer"
-            aria-label="Settings"
-          >
-            <SettingsIcon size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsDesktopSidebarOpen(false)}
+              className="p-1 hover:text-accent transition-colors cursor-pointer"
+              aria-label="Close sidebar"
+            >
+              <PanelLeftClose size={18} />
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="p-1 hover:text-accent transition-colors cursor-pointer"
+              aria-label="Settings"
+            >
+              <SettingsIcon size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="px-5 pb-6 flex flex-col gap-2">
           <button
             onClick={() => createChat()}
-            className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+            className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer flex items-center gap-2"
           >
+            <Plus size={16} />
             New Chat
           </button>
           <button
             onClick={() => {
               window.location.pathname = "/notes";
             }}
-            className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+            className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer flex items-center gap-2"
           >
+            <FileText size={16} />
             Notes
           </button>
         </div>
@@ -626,9 +643,19 @@ export default function Desktop_1() {
           ))}
         </div>
       </aside>
+      )}
 
       {/* Main Workspace */}
       <main className="flex-1 flex flex-col h-full relative border-border md:border-t-0 border-t">
+        {!isDesktopSidebarOpen && (
+          <button
+            onClick={() => setIsDesktopSidebarOpen(true)}
+            className="hidden md:flex absolute left-0 top-4 p-2 hover:text-accent transition-colors cursor-pointer z-10"
+            aria-label="Open sidebar"
+          >
+            <PanelLeft size={20} />
+          </button>
+        )}
         {/* Mobile Header */}
         <div className="md:hidden flex justify-between items-center p-4 border-b border-border">
           <h1 className="text-accent text-sm tracking-wide">avocado.</h1>
@@ -978,16 +1005,18 @@ export default function Desktop_1() {
                   createChat();
                   setIsMobileSidebarOpen(false);
                 }}
-                className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer flex items-center gap-2"
               >
+                <Plus size={16} />
                 New Chat
               </button>
               <button
                 onClick={() => {
                   window.location.pathname = "/notes";
                 }}
-                className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                className="w-full border border-border py-2 px-4 text-left text-sm hover:bg-surface-overlay transition-colors focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer flex items-center gap-2"
               >
+                <FileText size={16} />
                 Notes
               </button>
             </div>

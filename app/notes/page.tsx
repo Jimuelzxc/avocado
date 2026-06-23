@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Menu } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
@@ -12,18 +12,7 @@ export default function NotesPage() {
   const activeNoteId = useNotesStore((s) => s.activeNoteId);
   const createNote = useNotesStore((s) => s.createNote);
   const updateNote = useNotesStore((s) => s.updateNote);
-  const setActiveNote = useNotesStore((s) => s.setActiveNote);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (notes.length === 0) {
-      const id = createNote();
-      updateNote(id, '# Welcome to Notes\n\nStart writing in markdown...');
-    } else if (!activeNoteId) {
-      setActiveNote(notes[0].id);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const activeNote = notes.find((n) => n.id === activeNoteId);
 

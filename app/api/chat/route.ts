@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface GeminiMessage {
+  role: string;
+  content: string | { type: string; text?: string; image_url?: { url: string } }[];
+}
+
+interface GeminiPart {
+  text?: string;
+  inlineData?: { mimeType: string; data: string };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { apiKey, baseUrl, model, systemPrompt, messages, provider } = await req.json();
@@ -78,17 +88,17 @@ async function handleGeminiRequest(
   baseUrl: string,
   model: string,
   systemPrompt: string,
-  messages: any[]
+  messages: GeminiMessage[]
 ) {
   const sanitizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   const apiUrl = `${sanitizedBaseUrl}/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
-  const contents = messages.map((msg: any) => ({
+  const contents = messages.map((msg: GeminiMessage) => ({
     role: msg.role === 'assistant' ? 'model' : 'user',
     parts: contentToParts(msg.content),
   }));
 
-  const body: any = { contents };
+  const body: { contents: typeof contents; system_instruction?: { parts: { text: string }[] } } = { contents };
   if (systemPrompt?.trim()) {
     body.system_instruction = { parts: [{ text: systemPrompt }] };
   }
@@ -165,7 +175,7 @@ function processGeminiLine(
   try {
     const parsed = JSON.parse(line.slice(6));
     const text = parsed.candidates?.[0]?.content?.parts
-      ?.map((p: any) => p.text || '')
+      ?.map((p: GeminiPart) => p.text || '')
       .join('') || '';
     if (text) {
       const openaiChunk = JSON.stringify({
@@ -176,12 +186,12 @@ function processGeminiLine(
   } catch {}
 }
 
-function contentToParts(content: any): any[] {
+function contentToParts(content: GeminiMessage['content']): GeminiPart[] {
   if (typeof content === 'string') {
     return [{ text: content }];
   }
   if (Array.isArray(content)) {
-    return content.map((block: any) => {
+    return content.map((block) => {
       if (block.type === 'text') return { text: block.text };
       if (block.type === 'image_url') {
         const match = block.image_url?.url?.match(/^data:(.+?);base64,(.+)$/);

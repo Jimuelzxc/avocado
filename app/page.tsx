@@ -197,7 +197,7 @@ export default function Desktop_1() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: useChatStore.getState().provider,
-          apiKey: useChatStore.getState().apiKey,
+          apiKey: useChatStore.getState().provider === 'gemini' ? useChatStore.getState().geminiApiKey : useChatStore.getState().apiKey,
           baseUrl: useChatStore.getState().baseUrl,
           model: useChatStore.getState().model,
           systemPrompt: useChatStore.getState().systemPrompt,

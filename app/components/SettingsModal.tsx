@@ -5,7 +5,7 @@ import { useChatStore, Theme, FontSize, FontFamily } from '../store/chatStore';
 import { ImportExportModal } from './ImportExportModal';
 
 export function SettingsModal() {
-  const { apiKey, baseUrl, model, provider, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
+  const { apiKey, baseUrl, model, provider, geminiApiKey, theme, fontSize, fontFamily, setTheme, setFontSize, setFontFamily, setSettings, setSettingsOpen } = useChatStore();
 
   const [activeTab, setActiveTab] = useState<'appearance' | 'api' | 'data'>('api');
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
@@ -20,7 +20,7 @@ export function SettingsModal() {
       return 'custom';
     }
   });
-  const [localApiKey, setLocalApiKey] = useState(apiKey);
+  const [localApiKey, setLocalApiKey] = useState(provider === 'gemini' ? geminiApiKey : apiKey);
   const [localBaseUrl, setLocalBaseUrl] = useState(baseUrl);
   const [localModel, setLocalModel] = useState(model);
   const [showKey, setShowKey] = useState(false);
@@ -34,19 +34,22 @@ export function SettingsModal() {
     } else if (selected === 'openrouter') {
       setLocalBaseUrl('https://openrouter.ai/api/v1');
       setLocalModel('meta-llama/llama-3.2-3b-instruct');
+      setLocalApiKey(apiKey);
     } else if (selected === 'gemini') {
       setLocalBaseUrl('https://generativelanguage.googleapis.com/v1beta');
       setLocalModel('gemini-2.5-flash');
+      setLocalApiKey(geminiApiKey);
+    } else if (selected === 'custom') {
+      setLocalApiKey(apiKey);
     }
   };
 
   const handleSave = () => {
-    setSettings({
-      apiKey: localApiKey,
-      baseUrl: localBaseUrl,
-      model: localModel,
-      provider: preset === 'gemini' ? 'gemini' : 'openai',
-    });
+    if (preset === 'gemini') {
+      setSettings({ geminiApiKey: localApiKey, baseUrl: localBaseUrl, model: localModel, provider: 'gemini' });
+    } else {
+      setSettings({ apiKey: localApiKey, baseUrl: localBaseUrl, model: localModel, provider: 'openai' });
+    }
     setSettingsOpen(false);
   };
 
@@ -166,7 +169,7 @@ export function SettingsModal() {
                 type={showKey ? 'text' : 'password'}
                 value={localApiKey}
                 onChange={(e) => setLocalApiKey(e.target.value)}
-                placeholder={preset === 'ollama' ? 'No API key required' : 'sk-...'}
+                placeholder={preset === 'ollama' ? 'No API key required' : preset === 'gemini' ? 'Gemini API key' : 'sk-...'}
                 disabled={preset === 'ollama'}
                 className="w-full bg-surface border border-border text-text-primary px-3 py-2 pr-14 outline-none focus:border-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-text-secondary/50"
               />

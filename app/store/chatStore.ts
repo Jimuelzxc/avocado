@@ -45,6 +45,7 @@ export interface Settings {
   model: string;
   systemPrompt: string;
   provider: 'openai' | 'gemini';
+  geminiApiKey: string;
 }
 
 export type Theme = 'default' | 'dark' | 'light' | 'claude' | 'avocado';
@@ -56,6 +57,7 @@ interface ChatState {
   baseUrl: string;
   model: string;
   systemPrompt: string;
+  geminiApiKey: string;
   presets: PromptPreset[];
   activePresetId: string | null;
   chats: Chat[];
@@ -157,6 +159,7 @@ export const useChatStore = create<ChatState>()(
       model: 'meta-llama/llama-3.2-3b-instruct',
       systemPrompt: '',
       provider: 'openai',
+      geminiApiKey: '',
       presets: [],
       activePresetId: null,
       chats: [],
@@ -411,12 +414,13 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'blues-chat-storage',
-      partialize: (state) => ({
-        apiKey: state.apiKey,
-        baseUrl: state.baseUrl,
-        model: state.model,
-        systemPrompt: state.systemPrompt,
-        provider: state.provider,
+partialize: (state) => ({
+  apiKey: state.apiKey,
+  baseUrl: state.baseUrl,
+  model: state.model,
+  systemPrompt: state.systemPrompt,
+  provider: state.provider,
+  geminiApiKey: state.geminiApiKey,
         presets: state.presets,
         activePresetId: state.activePresetId,
         chats: state.chats,

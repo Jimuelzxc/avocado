@@ -45,8 +45,15 @@ export interface Settings {
   model: string;
   systemPrompt: string;
   provider: 'openai' | 'gemini';
-  geminiApiKey: string;
 }
+
+export interface PresetConfig {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}
+
+export type PresetName = 'openrouter' | 'ollama' | 'gemini' | 'custom';
 
 export type Theme = 'default' | 'dark' | 'light' | 'claude' | 'avocado';
 export type FontSize = 'small' | 'medium' | 'large';
@@ -57,7 +64,6 @@ interface ChatState {
   baseUrl: string;
   model: string;
   systemPrompt: string;
-  geminiApiKey: string;
   presets: PromptPreset[];
   activePresetId: string | null;
   chats: Chat[];
@@ -70,9 +76,12 @@ interface ChatState {
   slashCommands: SlashCommand[];
   customSlashCommands: SlashCommand[];
   provider: 'openai' | 'gemini';
+  activePreset: PresetName;
+  presetConfigs: Record<PresetName, PresetConfig>;
 
   // Actions
   setSettings: (settings: Partial<Settings>) => void;
+  switchPreset: (name: PresetName) => void;
   setSettingsOpen: (isOpen: boolean) => void;
   savePreset: (id: string | null, name: string, content: string) => string;
   deletePreset: (id: string) => void;
@@ -159,7 +168,13 @@ export const useChatStore = create<ChatState>()(
       model: 'meta-llama/llama-3.2-3b-instruct',
       systemPrompt: '',
       provider: 'openai',
-      geminiApiKey: '',
+      activePreset: 'openrouter',
+      presetConfigs: {
+        openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.2-3b-instruct' },
+        ollama: { apiKey: '', baseUrl: 'http://localhost:11434/v1', model: 'llama3.2' },
+        gemini: { apiKey: '', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash' },
+        custom: { apiKey: '', baseUrl: '', model: '' },
+      },
       presets: [],
       activePresetId: null,
       chats: [],
@@ -172,10 +187,31 @@ export const useChatStore = create<ChatState>()(
       slashCommands: [],
       customSlashCommands: [],
 
-      setSettings: (settings) => set((state) => ({
-        ...state,
-        ...settings,
-        ...(settings.systemPrompt !== undefined ? { activePresetId: null } : {}),
+      setSettings: (settings) => set((state) => {
+        const newState = { ...state, ...settings };
+        if (settings.apiKey !== undefined || settings.baseUrl !== undefined || settings.model !== undefined) {
+          const p = state.activePreset;
+          newState.presetConfigs = {
+            ...state.presetConfigs,
+            [p]: {
+              ...state.presetConfigs[p],
+              ...(settings.apiKey !== undefined ? { apiKey: settings.apiKey } : {}),
+              ...(settings.baseUrl !== undefined ? { baseUrl: settings.baseUrl } : {}),
+              ...(settings.model !== undefined ? { model: settings.model } : {}),
+            },
+          };
+        }
+        if (settings.systemPrompt !== undefined) {
+          newState.activePresetId = null;
+        }
+        return newState;
+      }),
+      switchPreset: (name) => set((state) => ({
+        activePreset: name,
+        apiKey: state.presetConfigs[name].apiKey,
+        baseUrl: state.presetConfigs[name].baseUrl,
+        model: state.presetConfigs[name].model,
+        provider: name === 'gemini' ? 'gemini' : 'openai',
       })),
       setSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
 
@@ -414,13 +450,10 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'blues-chat-storage',
-partialize: (state) => ({
-  apiKey: state.apiKey,
-  baseUrl: state.baseUrl,
-  model: state.model,
-  systemPrompt: state.systemPrompt,
-  provider: state.provider,
-  geminiApiKey: state.geminiApiKey,
+      partialize: (state) => ({
+        activePreset: state.activePreset,
+        presetConfigs: state.presetConfigs,
+        systemPrompt: state.systemPrompt,
         presets: state.presets,
         activePresetId: state.activePresetId,
         chats: state.chats,
@@ -442,6 +475,32 @@ partialize: (state) => ({
             name: 'Default',
             content: persisted.systemPrompt,
           }];
+        }
+        // Migration v3: flat fields → presetConfigs map
+        if (persisted?.apiKey !== undefined && !persisted?.presetConfigs) {
+          const isGemini = persisted.provider === 'gemini';
+          const isLocal = persisted.baseUrl?.includes('localhost') || persisted.baseUrl?.includes('127.0.0.1');
+          const isOpenRouter = persisted.baseUrl?.includes('openrouter.ai');
+          const detectedPreset = isGemini ? 'gemini' : isLocal ? 'ollama' : isOpenRouter ? 'openrouter' : 'custom';
+
+          persisted.presetConfigs = {
+            openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.2-3b-instruct' },
+            ollama: { apiKey: '', baseUrl: 'http://localhost:11434/v1', model: 'llama3.2' },
+            gemini: { apiKey: '', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash' },
+            custom: { apiKey: '', baseUrl: '', model: '' },
+          };
+
+          persisted.presetConfigs[detectedPreset] = {
+            apiKey: persisted.apiKey || '',
+            baseUrl: persisted.baseUrl || '',
+            model: persisted.model || '',
+          };
+
+          persisted.activePreset = detectedPreset;
+          delete persisted.apiKey;
+          delete persisted.baseUrl;
+          delete persisted.model;
+          delete persisted.provider;
         }
         return persisted;
       },

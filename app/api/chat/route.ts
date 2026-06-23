@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { apiKey, baseUrl, model, systemPrompt, messages } = await req.json();
+    const { apiKey, baseUrl, model, systemPrompt, messages, provider } = await req.json();
 
     if (!baseUrl) {
       return NextResponse.json({ error: 'Base URL is required' }, { status: 400 });
@@ -10,6 +10,10 @@ export async function POST(req: NextRequest) {
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
+    }
+
+    if (provider === 'gemini') {
+      return handleGeminiRequest(apiKey, baseUrl, model, systemPrompt, messages);
     }
 
     const fullMessages = systemPrompt?.trim()
@@ -67,4 +71,126 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function handleGeminiRequest(
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+  systemPrompt: string,
+  messages: any[]
+) {
+  const sanitizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const apiUrl = `${sanitizedBaseUrl}/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+  const contents = messages.map((msg: any) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: contentToParts(msg.content),
+  }));
+
+  const body: any = { contents };
+  if (systemPrompt?.trim()) {
+    body.system_instruction = { parts: [{ text: systemPrompt }] };
+  }
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let msg = `Gemini error (${response.status})`;
+    try {
+      const err = JSON.parse(errorText);
+      if (err.error?.message) msg = err.error.message;
+    } catch {}
+    return NextResponse.json({ error: msg }, { status: response.status });
+  }
+
+  const geminiStream = response.body;
+  if (!geminiStream) {
+    return NextResponse.json({ error: 'Response body is not readable' }, { status: 500 });
+  }
+
+  const reader = geminiStream.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+
+  const transformedStream = new ReadableStream({
+    async start(controller) {
+      let buffer = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            const lines = (buffer + decoder.decode()).split('\n');
+            for (const line of lines) {
+              processGeminiLine(line.trim(), controller, encoder);
+            }
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            break;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            processGeminiLine(line.trim(), controller, encoder);
+          }
+        }
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(transformedStream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+
+function processGeminiLine(
+  line: string,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder
+) {
+  if (!line || line === 'data: [DONE]') return;
+  if (!line.startsWith('data: ')) return;
+
+  try {
+    const parsed = JSON.parse(line.slice(6));
+    const text = parsed.candidates?.[0]?.content?.parts
+      ?.map((p: any) => p.text || '')
+      .join('') || '';
+    if (text) {
+      const openaiChunk = JSON.stringify({
+        choices: [{ delta: { content: text }, index: 0 }],
+      });
+      controller.enqueue(encoder.encode(`data: ${openaiChunk}\n\n`));
+    }
+  } catch {}
+}
+
+function contentToParts(content: any): any[] {
+  if (typeof content === 'string') {
+    return [{ text: content }];
+  }
+  if (Array.isArray(content)) {
+    return content.map((block: any) => {
+      if (block.type === 'text') return { text: block.text };
+      if (block.type === 'image_url') {
+        const match = block.image_url.url.match(/^data:(.+?);base64,(.+)$/);
+        if (match) {
+          return { inlineData: { mimeType: match[1], data: match[2] } };
+        }
+      }
+      return { text: '' };
+    });
+  }
+  return [{ text: '' }];
 }
